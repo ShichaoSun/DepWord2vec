@@ -23,7 +23,7 @@ public:
     const long long GetCN();
     char* GetWord();
     void ReadWord(FILE *fin);
-    ~Word();
+    void DeleteWord();
 private:
     char *word;
     long long cn; //count number
