@@ -404,7 +404,8 @@ void SkgNeg::TrainModel() {
 
 }
 
-SkgNeg::~SkgNeg() {
+
+void SkgNeg::DeleteSkgNeg() {
     //DestroyNet
     if (syn0 != NULL) {
         free(syn0);
