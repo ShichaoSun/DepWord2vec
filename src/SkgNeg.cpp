@@ -401,7 +401,7 @@ void SkgNeg::TrainModel() {
     fclose(fo);
    // free(table);
     free(pt);
-    v.~Vocab();
+
 }
 
 SkgNeg::~SkgNeg() {
@@ -420,5 +420,4 @@ SkgNeg::~SkgNeg() {
 
     free(table);
     free(expTable);
-    v.~Vocab();
 }
