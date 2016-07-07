@@ -7,7 +7,7 @@
 SkgNeg::SkgNeg():table_size(1e8),alpha(0.025),starting_alpha(0.025){
 
     //test
-    strcpy(train_file,"data.txt");
+    strcpy(train_file,"test.txt");
     strcpy(output_file,"vec.txt");
 
     binary=0;
