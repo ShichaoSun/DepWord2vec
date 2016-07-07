@@ -254,6 +254,8 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
         if (vocab_size > vocab_hash_size * 0.7) ReduceVocab();
     }
     SortVocab();
+    printf("Vocab size: %lld\n", vocab_size);
+    printf("Words in train file: %lld\n", train_words);
     /*
     if (debug_mode > 0) {
         printf("Vocab size: %lld\n", vocab_size);
