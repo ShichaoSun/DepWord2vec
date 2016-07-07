@@ -21,7 +21,7 @@ public:
     void SetWord(const char *w);
     void SetCN(int CN);
     const long long GetCN();
-    const char* GetWord();
+    char* GetWord();
     void ReadWord(FILE *fin);
     ~Word();
 private:

@@ -144,6 +144,7 @@ void Vocab::ReduceVocab() {
     for (a = 0; a < vocab_size; a++) if (vocab[a].GetCN() > min_reduce) {
             //vocab[b].cn = vocab[a].cn;
             //vocab[b].word = vocab[a].word;
+
             vocab[b].SetCN(vocab[a].GetCN());
             vocab[b].SetWord(vocab[a].GetWord());
             b++;
@@ -267,6 +268,6 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
 }
 
 Vocab::~Vocab() {
-    free(vocab);
+    DestroyVocab();
     free(vocab_hash);
 }

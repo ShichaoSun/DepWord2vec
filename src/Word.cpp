@@ -54,7 +54,7 @@ const long long Word::GetCN(){
     return cn;
 }
 
-const char* Word::GetWord(){
+char* Word::GetWord(){
     return word;
 }
 
@@ -64,6 +64,8 @@ void Word::CreatWordSpace(int length){
 }
 
 void Word::SetWord(const char *w) {
+    if(word==NULL)
+        word=(char*)(char *)calloc(MAX_STRING,sizeof(char));
     strcpy(word, w);
 }
 
@@ -97,4 +99,5 @@ void Word::ReadWord(FILE *fin) {// Reads a single word from a file, assuming spa
 
 Word::~Word(){
     free(word);
+    word=NULL;
 }

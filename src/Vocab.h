@@ -22,7 +22,6 @@ public:
     void LearnVocabFromTrainFile(const char *train_file);
     void SaveVocab(const char *save_vocab_file);
     void ReadVocab(const char *read_vocab_file);
-    void DestroyVocab();
     ~Vocab();
 private:
     long long train_words;
@@ -37,6 +36,7 @@ private:
     //int VocabCompare(const void*a,const void *b);
     void SortVocab();
     void ReduceVocab();
+    void DestroyVocab();
 };
 
 

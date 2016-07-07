@@ -7,8 +7,8 @@
 SkgNeg::SkgNeg():table_size(1e8),alpha(0.025),starting_alpha(0.025){
 
     //test
-    strcpy(train_file,"test.txt");
-    strcpy(output_file,"vec.txt");
+    strcpy(train_file,"/home/bruce/ClionProjects/DepWord2vec/bin/Debug/test.txt");
+    strcpy(output_file,"/home/bruce/ClionProjects/DepWord2vec/bin/Debug/vec.txt");
 
     binary=0;
     file_size=0;
@@ -329,7 +329,6 @@ void SkgNeg::TrainModel() {
     //for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, TrainModelThread, (void *)a);
     for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
 
-
     fo = fopen(output_file, "wb");
     if (fo == NULL) {
         fprintf(stderr, "Cannot open %s: permission denied\n", output_file);
@@ -402,7 +401,7 @@ void SkgNeg::TrainModel() {
     fclose(fo);
    // free(table);
     free(pt);
-    //DestroyVocab();
+    v.~Vocab();
 }
 
 SkgNeg::~SkgNeg() {
@@ -421,6 +420,5 @@ SkgNeg::~SkgNeg() {
 
     free(table);
     free(expTable);
-    v.DestroyVocab();
     v.~Vocab();
 }
