@@ -97,7 +97,7 @@ void Word::ReadWord(FILE *fin) {// Reads a single word from a file, assuming spa
     word[a] = 0;
 }
 
-Word::~Word(){
+void Word::DeleteWord(){
     free(word);
     word=NULL;
 }

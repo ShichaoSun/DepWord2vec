@@ -27,7 +27,7 @@ public:
     SkgNeg(Vocab *vocab);
     void TrainModel();
     void SaveWordVectors(char *output_file);
-    ~SkgNeg();
+    void DeleteSkgNeg();
 private:
     real sample;
     real alpha;

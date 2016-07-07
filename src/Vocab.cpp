@@ -87,7 +87,7 @@ void Vocab::DestroyVocab() {
 
     for (a = 0; a < vocab_size; a++) {
         if (vocab[a].GetWord() != NULL) {
-            vocab[a].~Word();
+            vocab[a].DeleteWord();
         }
         /*
         if (vocab[a].code != NULL) {
@@ -99,7 +99,7 @@ void Vocab::DestroyVocab() {
          */
     }
     //free(vocab[vocab_size].word);
-    vocab[vocab_size].~Word();
+    vocab[vocab_size].DeleteWord();
     free(vocab);
 }
 
@@ -117,7 +117,7 @@ void Vocab::SortVocab(){
         if (vocab[a].GetCN() < min_count) {
             vocab_size--;
             // free(vocab[a].word);
-            vocab[a].~Word();
+            vocab[a].DeleteWord();
         } else {
             // Hash will be re-computed, as after the sorting it is not actual
             hash=GetWordHash(vocab[a].GetWord());
@@ -150,7 +150,7 @@ void Vocab::ReduceVocab() {
             b++;
         } else
             //free(vocab[a].word);
-            vocab[a].~Word();
+            vocab[a].DeleteWord();
     vocab_size = b;
     for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
     for (a = 0; a < vocab_size; a++) {
@@ -189,7 +189,7 @@ void Vocab::ReadVocab(const char *read_vocab_file) {
         if (feof(fin)) break;
         //a=AddWordToVocab(word);
         AddWordToVocab(pw);
-        w.~Word();
+        w.DeleteWord();
         //fscanf(fin, "%lld%c", &vocab[a].cn, &c);
         //i++;
     }
@@ -267,7 +267,7 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
     fclose(fin);
 }
 
-Vocab::~Vocab() {
+void Vocab::DeleteVocab() {
     DestroyVocab();
     free(vocab_hash);
 }
