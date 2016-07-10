@@ -8,5 +8,5 @@ target_link_libraries(DepWord2vec pthread)
 
 ## Compiler flags
 if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "-O2 -funroll-loops")        ## Optimize
+    set(CMAKE_CXX_FLAGS "-O2 -Wall -funroll-loops")        ## Optimize
 endif()

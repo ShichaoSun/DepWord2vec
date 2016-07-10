@@ -16,22 +16,32 @@ typedef float real;
 #define MAX_SENTENCE_LENGTH 1000
 
 struct Para{
-    void *th;
+    void *pSelf;
     long long id;
 };
 
 
 class SkgNeg {
 public:
-    SkgNeg();
-    SkgNeg(Vocab *vocab);
+    SkgNeg(const Vocab& v);
     void TrainModel();
     void SaveWordVectors(char *output_file);
-    void DeleteSkgNeg();
+
+    void SetBinary(int x);
+    void SetWindow(int x);
+    void SetAlpha(real x);
+    void SetSample(real x);
+    void SetNegative(int x);
+    void SetDebugmode(int x);
+    void SetNumthread(int x);
+    void Setlayer1_size(long long x);
+    void SetTrainfile(const char *f);
+
+    ~SkgNeg();
 private:
+    const Vocab& vocab;
     real sample;
     real alpha;
-    real starting_alpha;
     real *syn0;
     real *syn1neg;
     real *expTable;
@@ -46,9 +56,9 @@ private:
     long long layer1_size;
     long long word_count_actual;
     char train_file[MAX_STRING];
-    char output_file[MAX_STRING];
-    Vocab v;
+    //Vocab v;
     const int table_size;
+    real starting_alpha;
     void InitUnigramTable();
     static void *BasicTrainModelThread(void *param);
     void TrainModelThread(long long id);

@@ -12,17 +12,19 @@
 class Vocab {
 public:
     Vocab();
-    long long GetVocabSize();
-    long long GetVocabWordCn(long long i);
-    long long GetTrainWords();
-    Word* GetVocab();
-    int SearchVocab(const char *word);// Returns position of a word in the vocabulary; if the word is not found, returns -1
-    int AddWordToVocab(char *word);// Adds a word to the vocabulary
-    int AddWordToVocab(Word *w);
     void LearnVocabFromTrainFile(const char *train_file);
     void SaveVocab(const char *save_vocab_file);
     void ReadVocab(const char *read_vocab_file);
-    void DeleteVocab();
+    void SetMincount(int x);
+
+    long long GetVocabSize() const;
+    long long GetVocabWordCn(long long i) const;
+    long long GetTrainWords() const;
+    char * GetVocabWord(long long a) const ;
+    int SearchVocab(const char *word) const;// Returns position of a word in the vocabulary; if the word is not found, returns -1
+
+
+    ~Vocab();
 private:
     long long train_words;
     long long vocab_size;
@@ -32,8 +34,10 @@ private:
     int min_reduce;
     int min_count;
     int *vocab_hash;
-    int GetWordHash(const char *word);// Returns hash value of a word
+    int GetWordHash(const char *word) const;// Returns hash value of a word
     //int VocabCompare(const void*a,const void *b);
+    int AddWordToVocab(char *word);// Adds a word to the vocabulary
+    int AddWordToVocab(Word *w);
     void SortVocab();
     void ReduceVocab();
     void DestroyVocab();

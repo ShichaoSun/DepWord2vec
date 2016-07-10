@@ -4,6 +4,7 @@
 
 #include "Vocab.h"
 Vocab::Vocab():vocab_hash_size(30000000){
+    train_words=0;
     vocab_max_size=1000;
     min_count=5;
     min_reduce=1;
@@ -12,14 +13,14 @@ Vocab::Vocab():vocab_hash_size(30000000){
     vocab_hash=(int*)calloc(vocab_hash_size,sizeof(int));
 }
 
-int Vocab::GetWordHash(const char *word) {// Returns hash value of a word
+int Vocab::GetWordHash(const char *word) const{// Returns hash value of a word
     unsigned long long a, hash = 0;
     for (a = 0; a < strlen(word); a++) hash = hash * 257 + word[a];
     hash = hash % vocab_hash_size;
     return hash;
 }
 
-int Vocab::SearchVocab(const char *word) {// Returns position of a word in the vocabulary; if the word is not found, returns -1
+int Vocab::SearchVocab(const char *word) const{// Returns position of a word in the vocabulary; if the word is not found, returns -1
     unsigned int hash = GetWordHash(word);
     while (1) {
         if (vocab_hash[hash] == -1) return -1;
@@ -28,6 +29,10 @@ int Vocab::SearchVocab(const char *word) {// Returns position of a word in the v
         hash = (hash + 1) % vocab_hash_size;
     }
     return -1;
+}
+
+char * Vocab::GetVocabWord(long long a) const {
+    return vocab[a].GetWord();
 }
 
 int Vocab::AddWordToVocab(Word *w) {
@@ -74,12 +79,16 @@ static int VocabCompare(const void*a,const void *b){
     return (((Word*)b)->GetCN() - ((Word *)a)->GetCN());
 }
 
-long long Vocab::GetVocabSize(){
+long long Vocab::GetVocabSize() const{
     return vocab_size;
 }
 
-long long Vocab::GetVocabWordCn(long long i){
+long long Vocab::GetVocabWordCn(long long i) const {
     return vocab[i].GetCN();
+}
+
+void Vocab::SetMincount(int x){
+    min_count=x;
 }
 
 void Vocab::DestroyVocab() {
@@ -212,12 +221,8 @@ void Vocab::ReadVocab(const char *read_vocab_file) {
      */
 }
 
-long long Vocab::GetTrainWords(){
+long long Vocab::GetTrainWords() const {
     return train_words;
-}
-
-Word* Vocab::GetVocab() {
-    return vocab;
 }
 
 void Vocab::LearnVocabFromTrainFile(const char *train_file) {
@@ -267,7 +272,7 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
     fclose(fin);
 }
 
-void Vocab::DeleteVocab() {
+Vocab::~Vocab() {
     DestroyVocab();
     free(vocab_hash);
 }
