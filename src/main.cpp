@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
-#include <string>
 #include "SkgNeg.h"
 #include <rapidjson/document.h>
 
