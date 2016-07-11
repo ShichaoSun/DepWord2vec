@@ -337,6 +337,7 @@ void SkgNeg::TrainModelThread(long long id){
 
 
 void SkgNeg::TrainModel() {
+    starting_alpha = alpha;
     FILE *fin = fopen(train_file, "rb");
     if (fin == NULL) {
         printf("ERROR: training data file not found!\n");
@@ -353,7 +354,6 @@ void SkgNeg::TrainModel() {
         exit(1);
     }
     printf("Starting training using file %s\n", train_file);
-    starting_alpha = alpha;
     /*
     if (read_vocab_file[0] != 0) ReadVocab(); else LearnVocabFromTrainFile();
     if (save_vocab_file[0] != 0) SaveVocab();

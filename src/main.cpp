@@ -64,14 +64,11 @@ int main(int argc, char **argv) {
     if (config.HasMember("binary"))
         skgneg.SetBinary(config["binary"].GetInt());
 
-    if (config.HasMember("cbow"))
-        skgneg.SetAlpha(config["cbow"].GetInt());
-
     if (config.HasMember("window"))
-        skgneg.SetAlpha(config["window"].GetInt());
+        skgneg.SetWindow(config["window"].GetInt());
 
     if (config.HasMember("sample"))
-        skgneg.SetAlpha(config["sample"].GetFloat());
+        skgneg.SetSample(config["sample"].GetFloat());
 
     if (config.HasMember("negative"))
         skgneg.SetNegative(config["negative"].GetInt());
