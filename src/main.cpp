@@ -55,8 +55,8 @@ int main(int argc, char **argv) {
         vocab.SaveVocab(save_vocab.c_str());
     }
 
-    if (config.HasMember("size"))
-        skgneg.Setlayer1_size(config["size"].GetInt());
+    if (config.HasMember("layer1_size"))
+        skgneg.Setlayer1_size(config["layer1_size"].GetInt());
 
     if (config.HasMember("debug_mode"))
         skgneg.SetDebugmode(config["debug_mode"].GetInt());
@@ -75,6 +75,9 @@ int main(int argc, char **argv) {
 
     if (config.HasMember("threads"))
         skgneg.SetNumthread(config["threads"].GetInt());
+
+    if(config.HasMember("alpha"))
+        skgneg.SetAlpha(config["alpha"].GetFloat());
 
     skgneg.TrainModel();
 

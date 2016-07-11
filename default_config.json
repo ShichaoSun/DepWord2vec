@@ -1,9 +1,8 @@
 {
   "train_file":"test.txt",
   "output_file":"vec.txt",
-  "size":200,
+  "layer1_size":200,
   "sample":1e-4,
-  "hs":0,
   "negative":5,
   "threads":8,
   "save_vocab":"vocab.txt"
