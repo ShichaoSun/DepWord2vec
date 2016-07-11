@@ -1,8 +1,13 @@
 #include <stdio.h>
-
+#include <iostream>
+#include <fstream>
+#include <string>
 #include "SkgNeg.h"
+#include <rapidjson/document.h>
 
 
+
+/*
 int ArgPos(char *str, int argc, char **argv) {
     int a;
     for (a = 1; a < argc; a++) if (!strcmp(str, argv[a])) {
@@ -14,9 +19,74 @@ int ArgPos(char *str, int argc, char **argv) {
         }
     return -1;
 }
+*/
 
 int main(int argc, char **argv) {
-    int i,j;
+    Vocab vocab;
+    char train_file[MAX_STRING];
+    char default_config[MAX_STRING]="/home/bruce/ClionProjects/DepWord2vec/default_config.json";
+    std::ifstream in(default_config, std::ios::in);
+    std::istreambuf_iterator<char> beg(in), end;
+    std::string jsondata(beg, end);
+    rapidjson::Document config;
+    config.Parse(jsondata.c_str());
+
+    if (config.HasMember("train_file")) {
+        std::string trainfile = config["train_file"].GetString();
+        strcpy(train_file, trainfile.c_str());
+        if (config.HasMember("read_vocab")) {
+            std::string read_vocab = config["read_vocab"].GetString();
+            vocab.ReadVocab(read_vocab.c_str());
+        }
+        else
+            vocab.LearnVocabFromTrainFile(train_file);
+    } else {
+        printf("train_file can't be empty!");
+        return 0;
+    }
+
+    if (config.HasMember("min_count"))
+        vocab.SetMincount(config["min_count"].GetInt());
+
+    SkgNeg skgneg(vocab);
+    skgneg.SetTrainfile(train_file);
+
+    if (config.HasMember("save_vocab")) {
+        std::string save_vocab = config["save_vocab"].GetString();
+        vocab.SaveVocab(save_vocab.c_str());
+    }
+
+    if (config.HasMember("size"))
+        skgneg.Setlayer1_size(config["size"].GetInt());
+
+    if (config.HasMember("debug_mode"))
+        skgneg.SetDebugmode(config["debug_mode"].GetInt());
+
+    if (config.HasMember("binary"))
+        skgneg.SetBinary(config["binary"].GetInt());
+
+    if (config.HasMember("cbow"))
+        skgneg.SetAlpha(config["cbow"].GetInt());
+
+    if (config.HasMember("window"))
+        skgneg.SetAlpha(config["window"].GetInt());
+
+    if (config.HasMember("sample"))
+        skgneg.SetAlpha(config["sample"].GetFloat());
+
+    if (config.HasMember("negative"))
+        skgneg.SetNegative(config["negative"].GetInt());
+
+    if (config.HasMember("threads"))
+        skgneg.SetNumthread(config["threads"].GetInt());
+
+    skgneg.TrainModel();
+
+    if (config.HasMember("output_file")) {
+        std::string output_file=config["output_file"].GetString();
+        skgneg.SaveWordVectors(output_file.c_str());
+    }
+    /*int i,j;
     if (argc == 1) {
         printf("WORD VECTOR FROM DEPENDENCY TREE\n\n");
         printf("Options:\n");
@@ -131,7 +201,7 @@ int main(int argc, char **argv) {
     skgneg.TrainModel();
 
     if ((i = ArgPos((char *)"-output", argc, argv)) > 0)
-        skgneg.SaveWordVectors(argv[i + 1]);
+        skgneg.SaveWordVectors(argv[i + 1]);*/
 
     return 0;
 }

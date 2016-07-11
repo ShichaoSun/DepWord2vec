@@ -25,7 +25,7 @@ class SkgNeg {
 public:
     SkgNeg(const Vocab& v);
     void TrainModel();
-    void SaveWordVectors(char *output_file);
+    void SaveWordVectors(const char *output_file);
 
     void SetBinary(int x);
     void SetWindow(int x);

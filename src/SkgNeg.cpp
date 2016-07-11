@@ -450,7 +450,7 @@ void SkgNeg::TrainModel() {
 
 }
 
-void SkgNeg::SaveWordVectors(char *output_file) {
+void SkgNeg::SaveWordVectors(const char *output_file) {
     FILE *fo = fopen(output_file, "wb");
     if (fo == NULL) {
         fprintf(stderr, "Cannot open %s: permission denied\n", output_file);
