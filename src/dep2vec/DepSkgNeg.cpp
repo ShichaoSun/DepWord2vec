@@ -163,6 +163,7 @@ void* DepSkgNeg::BasicTrainModelThread(void *param){// multithread basic
     Para *p=(Para*)param;
     DepSkgNeg* pS=(DepSkgNeg*)((*p).pSelf);
     pS->TrainModelThread((*p).id);
+    pthread_exit(NULL);
 }
 
 
@@ -181,6 +182,8 @@ void DepSkgNeg::TrainModelThread(long long id){
         fprintf(stderr, "no such file or directory: %s", train_file);
         exit(1);
     }
+    long long test=file_size / (long long)num_threads * id;
+
     fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
 
     char line[MAX_STRING];
@@ -238,6 +241,17 @@ void DepSkgNeg::TrainModelThread(long long id){
         if (word_count > train_words / num_threads) break;
 
         word = depTree.GetWordInPos(sentence_position);
+
+        if (word == -1) {
+            sentence_position++;
+            if (sentence_position > sentence_length) {
+                if (feof(fi)) break;
+                sentence_length = 0;
+                continue;
+            }
+            continue;
+        }
+
         // The subsampling randomly discards frequent words while keeping the ranking same
         if (sample > 0) {
             real ran = (sqrt(vocab.GetVocabWordCn(word) / (sample * train_words)) + 1) * (sample * train_words) / vocab.GetVocabWordCn(word);
@@ -245,13 +259,15 @@ void DepSkgNeg::TrainModelThread(long long id){
             next_random = next_random * (unsigned long long)25214903917 + 11;
             if (ran < (next_random & 0xFFFF) / (real)65536) {
                 sentence_position++;
+                if (sentence_position > sentence_length) {
+                    if (feof(fi)) break;
+                    sentence_length = 0;
+                    continue;
+                }
                 continue;
             }
         }
-        if (word == -1) {
-            sentence_position++;
-            continue;
-        }
+
         //for (c = 0; c < layer1_size; c++) neu1[c] = 0;
         for (c = 0; c < layer1_size; c++) neu1e[c] = 0;
         next_random = next_random * (unsigned long long)25214903917 + 11;
@@ -316,7 +332,7 @@ void DepSkgNeg::TrainModelThread(long long id){
                     for (c = 0; c < layer1_size; c++) syn0[c + last_word * layer1_size] += neu1e[c];
                 }
         } else {  //train skip-gram*/
-        int s_size=sam.size();
+        unsigned long s_size=sam.size();
         for(a=0;a<s_size;a++) {
             //for (a = b; a < window * 2 + 1 - b; a++) if (a != window) {
             // c = sentence_position - window + a;
@@ -392,7 +408,7 @@ void DepSkgNeg::TrainModelThread(long long id){
     fclose(fi);
     //free(neu1);
     free(neu1e);
-    pthread_exit(NULL);
+
 }
 
 

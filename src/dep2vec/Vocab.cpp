@@ -235,7 +235,8 @@ void Vocab::ReadWordFromTrainFile(char *word,FILE *fin) {
         if ((temp[0] >= 'a' && temp[0] <= 'z') || (temp[0] >= 'A' && temp[0] <= 'Z')) {
             const char *d = " ";
             char *p;
-            p = strtok(temp, d);
+            char *q=temp;
+            p = strsep(&q, d);
             if(!strcmp(p,"punct")) {
                 if (feof(fin))
                     break;
@@ -244,7 +245,7 @@ void Vocab::ReadWordFromTrainFile(char *word,FILE *fin) {
                     continue;
                 }
             }
-            for (int i = 0; i < 3; i++) p = strtok(NULL, d);
+            for (int i = 0; i < 3; i++) p = strsep(&q, d);
             strcpy(word, p);
             break;
         }

@@ -8,11 +8,12 @@ DepTree::DepTree(const Vocab &v):vocab(v){
 }
 
 void DepTree::DeleteDepTree() {
-    for(int i=0;i<senlen;i++){
-        deptree[i].parent=0;
-        deptree[i].wordInVocab=0;
+    for(int i=0;i<=senlen;i++){
+        deptree[i].parent=-1;
+        deptree[i].wordInVocab=-1;
         deptree[i].child.clear();
     }
+    senlen=-1;
 }
 
 void DepTree::GetDepTreeFromFilePointer(FILE *fin){
@@ -21,26 +22,34 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin){
     char *p;
     const char *d=" ";
     fgets(temp,MAX_STRING,fin);
+    while(!(temp[0]>='0' && temp[0]<='9'))
+        fgets(temp,MAX_STRING,fin);
+
     senlen=atoi(temp);
     int sen_pos=1;
     for(int i=0;i<senlen;i++){
         fgets(temp,MAX_STRING,fin);
-        char ssss[MAX_STRING];
-        strcpy(ssss,temp);
-        p = strtok(temp, d);
+
+        char *q=temp;
+        p = strsep(&q, d);
+
         int parent,child;
         for(int j=0;j<5;j++){
             if(j==2)
                 parent=atoi(p);
             if(j==3)
                 deptree[sen_pos].wordInVocab = vocab.SearchVocab(p);
-            if(j==4)
+            if(j==4) {
                 child = atoi(p);
-            p=strtok(NULL,d);
+                break;
+            }
+            p = strsep(&q, d);
         }
+        sen_pos++;
         deptree[child].parent=parent;
         deptree[parent].child.push_back(child);
     }
+    fgets(temp,MAX_STRING,fin);
 }
 
 int DepTree::GetWordInPos(int pos) {
