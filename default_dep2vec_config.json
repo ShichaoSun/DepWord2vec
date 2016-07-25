@@ -1,10 +1,11 @@
 {
-  "train_file":"test.txt",
-  "output_file":"vec.txt",
+  "train_file":"corpus",
+  "output_file":"word2vec.bin",
+  "binary":1,
   "layer1_size":200,
   "sample":1e-4,
   "negative":5,
   "threads":8,
   "save_vocab":"vocab.txt",
-  "iter":1
+  "iter":15
 }

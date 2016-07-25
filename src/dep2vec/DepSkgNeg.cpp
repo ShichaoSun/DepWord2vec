@@ -181,7 +181,6 @@ void DepSkgNeg::TrainModelThread(long long id){
         fprintf(stderr, "no such file or directory: %s", train_file);
         exit(1);
     }
-    long long test=file_size / (long long)num_threads * id;
 
     fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
 
@@ -246,6 +245,14 @@ void DepSkgNeg::TrainModelThread(long long id){
             last_word_count = 0;
             sentence_length = 0;
             fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
+
+            char line[MAX_STRING];
+            fgets(line,MAX_STRING,fi);
+            //find a empty lines as the start of a tree
+            while(!strcmp(line, "\n")){
+                fgets(line,MAX_STRING,fi);
+            }
+
             continue;
         }
 
@@ -263,6 +270,14 @@ void DepSkgNeg::TrainModelThread(long long id){
                     last_word_count = 0;
                     sentence_length = 0;
                     fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
+
+                    char line[MAX_STRING];
+                    fgets(line,MAX_STRING,fi);
+                    //find a empty lines as the start of a tree
+                    while(!strcmp(line, "\n")){
+                        fgets(line,MAX_STRING,fi);
+                    }
+
                     continue;
                 }
                 sentence_length = 0;
@@ -288,6 +303,14 @@ void DepSkgNeg::TrainModelThread(long long id){
                         last_word_count = 0;
                         sentence_length = 0;
                         fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
+
+                        char line[MAX_STRING];
+                        fgets(line,MAX_STRING,fi);
+                        //find a empty lines as the start of a tree
+                        while(!strcmp(line, "\n")){
+                            fgets(line,MAX_STRING,fi);
+                        }
+
                         continue;
                     }
                     sentence_length = 0;
@@ -437,6 +460,14 @@ void DepSkgNeg::TrainModelThread(long long id){
                 last_word_count = 0;
                 sentence_length = 0;
                 fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
+
+                char line[MAX_STRING];
+                fgets(line,MAX_STRING,fi);
+                //find a empty lines as the start of a tree
+                while(!strcmp(line, "\n")){
+                    fgets(line,MAX_STRING,fi);
+                }
+
                 continue;
             }
             sentence_length = 0;

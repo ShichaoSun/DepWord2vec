@@ -17,7 +17,7 @@ void DepTree::DeleteDepTree() {
 }
 
 void DepTree::GetDepTreeFromFilePointer(FILE *fin){
-    DeleteDepTree();
+    DeleteDepTree();  //clear
     char temp[MAX_STRING];
     char *p;
     const char *d=" ";

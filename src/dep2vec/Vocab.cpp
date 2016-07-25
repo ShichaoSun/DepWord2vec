@@ -232,7 +232,7 @@ void Vocab::ReadWordFromTrainFile(char *word,FILE *fin) {
     char temp[MAX_STRING];
     fgets(temp, MAX_STRING, fin);
     while (1) {
-        if ((temp[0] >= 'a' && temp[0] <= 'z') || (temp[0] >= 'A' && temp[0] <= 'Z')) {
+        if (temp[0] >= 'a' && temp[0] <= 'z') {
             const char *d = " ";
             char *p;
             char *q=temp;
@@ -270,23 +270,22 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
     AddWordToVocab((char *)"</s>");
     while (1) {
         ReadWordFromTrainFile(word, fin);
-        if((word[0] >= 'a' && word[0] <= 'z') || (word[0] >= 'A' && word[0] <= 'Z')) {
-            train_words++;
-            /*
-            if ((debug_mode > 1) && (train_words % 100000 == 0)) {
-                printf("%lldK%c", train_words / 1000, 13);
-                fflush(stdout);
-            }
-             */
-            i = SearchVocab(word);
-            if (i == -1) {
-                a = AddWordToVocab(word);
-                vocab[a].cn = 1;
-            } else vocab[i].cn++;
-            if (vocab_size > vocab_hash_size * 0.7) ReduceVocab();
+        train_words++;
+        /*
+        if ((debug_mode > 1) && (train_words % 100000 == 0)) {
+            printf("%lldK%c", train_words / 1000, 13);
+            fflush(stdout);
         }
+         */
+        i = SearchVocab(word);
+        if (i == -1)
+            AddWordToVocab(word);
+        else vocab[i].cn++;
+        if (vocab_size > vocab_hash_size * 0.7) ReduceVocab();
+
         if (feof(fin)) break;
     }
+
     SortVocab();
     printf("Vocab size: %lld\n", vocab_size);
     printf("Words in train file: %lld\n", train_words);

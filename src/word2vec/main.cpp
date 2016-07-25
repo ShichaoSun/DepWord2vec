@@ -23,7 +23,7 @@ int ArgPos(char *str, int argc, char **argv) {
 int main(int argc, char **argv) {
     Vocab vocab;
     char train_file[MAX_STRING];
-    char default_config[MAX_STRING]="/home/bruce/ClionProjects/DepWord2vec/default_config.json";
+    char default_config[MAX_STRING]="/home/bruce/ClionProjects/DepWord2vec/default_word2vec_config.json";
     std::ifstream in(default_config, std::ios::in);
     std::istreambuf_iterator<char> beg(in), end;
     std::string jsondata(beg, end);
@@ -69,6 +69,9 @@ int main(int argc, char **argv) {
 
     if (config.HasMember("window"))
         skgneg.SetWindow(config["window"].GetInt());
+
+    if (config.HasMember("iter"))
+        skgneg.SetIter(config["iter"].GetInt());
 
     if (config.HasMember("sample"))
         skgneg.SetSample(config["sample"].GetFloat());

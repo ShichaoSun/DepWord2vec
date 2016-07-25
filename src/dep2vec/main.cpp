@@ -6,9 +6,9 @@
 #include <iostream>
 #include <fstream>
 #include "DepSkgNeg.h"
-//#include <rapidjson/document.h>
+#include <rapidjson/document.h>
 
-
+/*
 int ArgPos(char *str, int argc, char **argv) {
     int a;
     for (a = 1; a < argc; a++) if (!strcmp(str, argv[a])) {
@@ -20,13 +20,13 @@ int ArgPos(char *str, int argc, char **argv) {
         }
     return -1;
 }
-
+*/
 
 int main(int argc, char **argv) {
 
-    /*Vocab vocab;
+    Vocab vocab;
     char train_file[MAX_STRING];
-    char default_config[MAX_STRING]="/home/bruce/ClionProjects/DepWord2vec/default_config.json";
+    char default_config[MAX_STRING]="/home/bruce/ClionProjects/DepWord2vec/default_dep2vec_config.json";
     std::ifstream in(default_config, std::ios::in);
     std::istreambuf_iterator<char> beg(in), end;
     std::string jsondata(beg, end);
@@ -50,8 +50,8 @@ int main(int argc, char **argv) {
     if (config.HasMember("min_count"))
         vocab.SetMincount(config["min_count"].GetInt());
 
-    SkgNeg skgneg(vocab);
-    skgneg.SetTrainfile(train_file);
+    DepSkgNeg depskgneg(vocab);
+    depskgneg.SetTrainfile(train_file);
 
     if (config.HasMember("save_vocab")) {
         std::string save_vocab = config["save_vocab"].GetString();
@@ -59,35 +59,39 @@ int main(int argc, char **argv) {
     }
 
     if (config.HasMember("layer1_size"))
-        skgneg.Setlayer1_size(config["layer1_size"].GetInt());
+        depskgneg.Setlayer1_size(config["layer1_size"].GetInt());
 
     if (config.HasMember("debug_mode"))
-        skgneg.SetDebugmode(config["debug_mode"].GetInt());
+        depskgneg.SetDebugmode(config["debug_mode"].GetInt());
 
     if (config.HasMember("binary"))
-        skgneg.SetBinary(config["binary"].GetInt());
+        depskgneg.SetBinary(config["binary"].GetInt());
+
+    if (config.HasMember("iter"))
+        depskgneg.SetIter(config["iter"].GetInt());
 
     if (config.HasMember("window"))
-        skgneg.SetWindow(config["window"].GetInt());
+        depskgneg.SetWindow(config["window"].GetInt());
 
     if (config.HasMember("sample"))
-        skgneg.SetSample(config["sample"].GetFloat());
+        depskgneg.SetSample(config["sample"].GetFloat());
 
     if (config.HasMember("negative"))
-        skgneg.SetNegative(config["negative"].GetInt());
+        depskgneg.SetNegative(config["negative"].GetInt());
 
     if (config.HasMember("threads"))
-        skgneg.SetNumthread(config["threads"].GetInt());
+        depskgneg.SetNumthread(config["threads"].GetInt());
 
     if(config.HasMember("alpha"))
-        skgneg.SetAlpha(config["alpha"].GetFloat());
+        depskgneg.SetAlpha(config["alpha"].GetFloat());
 
-    skgneg.TrainModel();
+    depskgneg.TrainModel();
 
     if (config.HasMember("output_file")) {
         std::string output_file=config["output_file"].GetString();
-        skgneg.SaveWordVectors(output_file.c_str());
-    }*/
+        depskgneg.SaveWordVectors(output_file.c_str());
+    }
+    /*
     int i,j;
     if (argc == 1) {
         printf("WORD VECTOR FROM DEPENDENCY TREE\n\n");
@@ -204,6 +208,6 @@ int main(int argc, char **argv) {
 
     if ((i = ArgPos((char *)"-output", argc, argv)) > 0)
         depskgneg.SaveWordVectors(argv[i + 1]);
-
+*/
     return 0;
 }
