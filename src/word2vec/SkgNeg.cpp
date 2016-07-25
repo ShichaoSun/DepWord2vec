@@ -5,6 +5,7 @@
 #include "SkgNeg.h"
 
 SkgNeg::SkgNeg(const Vocab& v):table_size(1e8),vocab(v){//initialize default parameter
+    iter=5;
     alpha=0.025;
     binary=0;
     file_size=0;
@@ -31,8 +32,9 @@ SkgNeg::SkgNeg(const Vocab& v):table_size(1e8),vocab(v){//initialize default par
     //v.LearnVocabFromTrainFile(train_file);
     //InitNet
     long long a, b;
+    unsigned long long next_random = 1;
     long long vocab_size=vocab.GetVocabSize();
-    posix_memalign((void **)&syn0, 128, (long long)vocab_size * layer1_size * sizeof(real));
+    posix_memalign((void **)&syn0, 128,  (long long)vocab_size * layer1_size * sizeof(real));
 
     if (syn0 == NULL) {
         printf("Memory allocation failed\n");
@@ -47,19 +49,21 @@ SkgNeg::SkgNeg(const Vocab& v):table_size(1e8),vocab(v){//initialize default par
     }*/
     //if (negative>0) {
     //a = posix_memalign((void **)&syn1neg, 128, (long long)vocab_size * layer1_size * sizeof(real));
-    posix_memalign((void **)&syn1neg, 128, (long long)vocab_size * layer1_size * sizeof(real));
+    posix_memalign((void **)&syn1neg, 128,  (long long)vocab_size * layer1_size * sizeof(real));
 
     if (syn1neg == NULL) {
         printf("Memory allocation failed\n");
         exit(1);
     }
 
-    for (b = 0; b < layer1_size; b++) for (a = 0; a < vocab_size; a++)
+    for (a = 0; a < vocab_size; a++) for (b = 0; b < layer1_size; b++)
             syn1neg[a * layer1_size + b] = 0;
     //}
 
-    for (b = 0; b < layer1_size; b++) for (a = 0; a < vocab_size; a++)
-            syn0[a * layer1_size + b] = (rand() / (real)RAND_MAX - 0.5) / layer1_size;
+    for (a = 0; a < vocab_size; a++) for (b = 0; b < layer1_size; b++) {
+            next_random = next_random * (unsigned long long)25214903917 + 11;
+            syn0[a * layer1_size + b] = (((next_random & 0xFFFF) / (real)65536) - 0.5) / layer1_size;
+        }
 
     //CreateBinaryTree();
 }
@@ -99,26 +103,26 @@ void SkgNeg::SetNegative(int x){
     negative=x;
 }
 
+void SkgNeg::SetIter(int x) {
+    iter=x;
+}
+
 void SkgNeg::InitUnigramTable() {// initialize a table for negative sampling
     int a, i;
-    long long train_words_pow = 0;
-    real d1, power = 0.75;
+    double train_words_pow = 0;
+    double d1, power = 0.75;
     table = (int *)malloc(table_size * sizeof(int));
-    if (table == NULL) {
-        fprintf(stderr, "cannot allocate memory for the table\n");
-        exit(1);
-    }
     //for (a = 0; a < vocab_size; a++) train_words_pow += pow(vocab[a].cn, power);
     for (a = 0; a < vocab.GetVocabSize(); a++) train_words_pow += pow(vocab.GetVocabWordCn(a), power);
     i = 0;
-    d1 = pow(vocab.GetVocabWordCn(i), power) / (real)train_words_pow;
-    //d1 = pow(vocab[i].cn, power) / (real)train_words_pow;
+    d1 = pow(vocab.GetVocabWordCn(i), power) / train_words_pow;
+    //d1 = pow(vocab[i].cn, power) / train_words_pow;
     for (a = 0; a < table_size; a++) {
         table[a] = i;
-        if (a / (real)table_size > d1) {
+        if (a / (double)table_size > d1) {
             i++;
-            d1 += pow(vocab.GetVocabWordCn(i), power) / (real)train_words_pow;
-            //d1 += pow(vocab[i].cn, power) / (real)train_words_pow;
+            d1 += pow(vocab.GetVocabWordCn(i), power) / train_words_pow;
+            //d1 += pow(vocab[i].cn, power) / train_words_pow;
         }
         if (i >= vocab.GetVocabSize()) i = vocab.GetVocabSize() - 1;
         //if (i >= vocab_size) i = vocab_size - 1;
@@ -160,7 +164,7 @@ void* SkgNeg::BasicTrainModelThread(void *param){// multithread basic
 void SkgNeg::TrainModelThread(long long id){
     long long a, b, d, word, last_word, sentence_length = 0, sentence_position = 0;
     long long word_count = 0, last_word_count = 0, sen[MAX_SENTENCE_LENGTH + 1];
-    long long l1, l2, c, target, label;
+    long long l1, l2, c, target, label, local_iter = iter;
     unsigned long long next_random = id;
     real f, g;
     clock_t now;
@@ -171,7 +175,7 @@ void SkgNeg::TrainModelThread(long long id){
         fprintf(stderr, "no such file or directory: %s", train_file);
         exit(1);
     }
-    fseek(fi, file_size / (long long)num_threads * (long long)id, SEEK_SET);
+    fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
     int train_words=vocab.GetTrainWords();
     while (1) {
         if (word_count - last_word_count > 10000) {
@@ -180,11 +184,11 @@ void SkgNeg::TrainModelThread(long long id){
             if ((debug_mode > 1)) {
                 now=clock();
                 printf("%cAlpha: %f  Progress: %.2f%%  Words/thread/sec: %.2fk  ", 13, alpha,
-                       word_count_actual / (real)(train_words + 1) * 100,
+                       word_count_actual / (real)(iter * train_words + 1) * 100,
                        word_count_actual / ((real)(now - start + 1) / (real)CLOCKS_PER_SEC * 1000));
                 fflush(stdout);
             }
-            alpha = starting_alpha * (1 - word_count_actual / (real)(train_words + 1));
+            alpha = starting_alpha * (1 - word_count_actual / (real)(iter * train_words + 1));
             if (alpha < starting_alpha * 0.0001) alpha = starting_alpha * 0.0001;
         }
         if (sentence_length == 0) {
@@ -207,8 +211,16 @@ void SkgNeg::TrainModelThread(long long id){
             }
             sentence_position = 0;
         }
-        if (feof(fi)) break;
-        if (word_count > train_words / num_threads) break;
+        if (feof(fi) || (word_count > train_words / num_threads)) {
+            word_count_actual += word_count - last_word_count;
+            local_iter--;
+            if (local_iter == 0) break;
+            word_count = 0;
+            last_word_count = 0;
+            sentence_length = 0;
+            fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
+            continue;
+        }
         word = sen[sentence_position];
         if (word == -1) continue;
         //for (c = 0; c < layer1_size; c++) neu1[c] = 0;

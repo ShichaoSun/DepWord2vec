@@ -58,6 +58,9 @@ int main(int argc, char **argv) {
     if (config.HasMember("layer1_size"))
         skgneg.Setlayer1_size(config["layer1_size"].GetInt());
 
+    if (config.HasMember("iter"))
+        skgneg.SetIter(config["iter"].GetInt());
+
     if (config.HasMember("debug_mode"))
         skgneg.SetDebugmode(config["debug_mode"].GetInt());
 
@@ -111,6 +114,8 @@ int main(int argc, char **argv) {
         printf("\t\tThis will discard words that appear less than <int> times; default is 5\n");
         printf("\t-alpha <float>\n");
         printf("\t\tSet the starting learning rate; default is 0.025\n");
+        printf("\t-iter <int>\n");
+        printf("\t\tRun more training iterations (default 5)\n");
         //printf("\t-classes <int>\n");
         //printf("\t\tOutput word classes rather than word vectors; default number of classes is 0 (vectors are written)\n");
         printf("\t-debug <int>\n");

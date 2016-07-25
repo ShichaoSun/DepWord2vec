@@ -36,6 +36,7 @@ public:
     void SetNumthread(int x);
     void Setlayer1_size(long long x);
     void SetTrainfile(const char *f);
+    void SetIter(int x);
 
     ~SkgNeg();
 private:
@@ -51,6 +52,7 @@ private:
     int negative;
     int window;
     int binary;
+    int iter;
     clock_t start;
     long long file_size;
     long long layer1_size;
