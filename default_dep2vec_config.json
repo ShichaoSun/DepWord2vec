@@ -1,11 +1,12 @@
 {
-  "train_file":"corpus",
-  "output_file":"word2vec.bin",
+  "train_file":"tree",
+  "output_file":"dep2vec.bin",
   "binary":1,
   "layer1_size":200,
   "sample":1e-4,
-  "negative":5,
-  "threads":8,
-  "save_vocab":"vocab.txt",
-  "iter":15
+  "negative":10,
+  "window":5,
+  "threads":6,
+  "save_vocab":"depvocab",
+  "iter":5
 }

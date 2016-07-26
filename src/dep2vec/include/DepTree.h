@@ -10,7 +10,7 @@
 #include <queue>
 using namespace std;
 
-#define MAX_SENTENCE_LENGTH 1000
+#define MAX_SENTENCE_LENGTH 1024
 
 struct TreeNode{
     int wordInVocab;
@@ -24,13 +24,15 @@ public:
     void GetDepTreeFromFilePointer(FILE *fin);
     int GetWordInPos(int pos);
     int GetSenlen();
+    int GetWordCount();
     vector<int> GetSample(int pos,int window);
 private:
+    int wordCount;
     int senlen;
     TreeNode deptree[MAX_SENTENCE_LENGTH+1];
     const Vocab &vocab;
 
-    void DeleteDepTree();
+    void ClearDepTree();
 };
 
 

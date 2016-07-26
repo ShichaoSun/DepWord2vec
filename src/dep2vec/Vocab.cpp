@@ -232,7 +232,8 @@ void Vocab::ReadWordFromTrainFile(char *word,FILE *fin) {
     char temp[MAX_STRING];
     fgets(temp, MAX_STRING, fin);
     while (1) {
-        if (temp[0] >= 'a' && temp[0] <= 'z') {
+        if ((temp[0]>='a' && temp[0]<='z')) {
+            assert(strlen(temp)>1);
             const char *d = " ";
             char *p;
             char *q=temp;
@@ -245,7 +246,10 @@ void Vocab::ReadWordFromTrainFile(char *word,FILE *fin) {
                     continue;
                 }
             }
-            for (int i = 0; i < 3; i++) p = strsep(&q, d);
+            for (int i = 0; i < 3; i++) {
+                p = strsep(&q, d);
+                assert(strlen(p)>0);
+            }
             strcpy(word, p);
             break;
         }
@@ -269,6 +273,7 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
     vocab_size = 0;
     AddWordToVocab((char *)"</s>");
     while (1) {
+        word[0]=0;
         ReadWordFromTrainFile(word, fin);
         train_words++;
         /*
@@ -281,7 +286,8 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
         if (i == -1)
             AddWordToVocab(word);
         else vocab[i].cn++;
-        if (vocab_size > vocab_hash_size * 0.7) ReduceVocab();
+        if (vocab_size > vocab_hash_size * 0.7)
+            ReduceVocab();
 
         if (feof(fin)) break;
     }

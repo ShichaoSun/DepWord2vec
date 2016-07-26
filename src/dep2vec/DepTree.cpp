@@ -5,35 +5,40 @@
 
 DepTree::DepTree(const Vocab &v):vocab(v){
     senlen=0;
+    wordCount=0;
 }
 
-void DepTree::DeleteDepTree() {
+void DepTree::ClearDepTree() {
     for(int i=0;i<=senlen;i++){
         deptree[i].parent=-1;
         deptree[i].wordInVocab=-1;
         deptree[i].child.clear();
     }
     senlen=-1;
+    wordCount=0;
 }
 
 void DepTree::GetDepTreeFromFilePointer(FILE *fin){
-    DeleteDepTree();  //clear
+    ClearDepTree();  //clear
     char temp[MAX_STRING];
     char *p;
     const char *d=" ";
     fgets(temp,MAX_STRING,fin);
-    while(!(temp[0]>='0' && temp[0]<='9'))
-        fgets(temp,MAX_STRING,fin);
 
     senlen=atoi(temp);
+    assert(senlen>0);
+    wordCount=senlen;
+
     int sen_pos=1;
     for(int i=0;i<senlen;i++){
+        assert(!feof(fin));
         fgets(temp,MAX_STRING,fin);
 
         char *q=temp;
         p = strsep(&q, d);
-
-        int parent,child;
+        if(!strcmp(p,"punct"))
+            wordCount--;
+        int parent=0,child=0;
         for(int j=0;j<5;j++){
             if(j==2)
                 parent=atoi(p);
@@ -46,9 +51,11 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin){
             p = strsep(&q, d);
         }
         sen_pos++;
+        assert(parent>=0 && child>0);
         deptree[child].parent=parent;
         deptree[parent].child.push_back(child);
     }
+    assert(!feof(fin));
     fgets(temp,MAX_STRING,fin);
 }
 
@@ -58,6 +65,10 @@ int DepTree::GetWordInPos(int pos) {
 
 int DepTree::GetSenlen() {
     return senlen;
+}
+
+int DepTree::GetWordCount() {
+    return wordCount;
 }
 
 vector<int> DepTree::GetSample(int pos,int window){
@@ -71,13 +82,15 @@ vector<int> DepTree::GetSample(int pos,int window){
         p=deptree[p].parent;
     }
     queue<int> q;
-    if(deptree[pos].child.empty()){
+
+    if(deptree[pos].child.empty())
         return sam;
-    }
+
     //to child
     for(int j=0;j<deptree[pos].child.size();j++){
         q.push(deptree[pos].child[j]);
     }
+
     for(int j=0;j<window;j++){
         int qsize=q.size();
         for(int k=0;k<qsize;k++){

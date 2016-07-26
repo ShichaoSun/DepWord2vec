@@ -61,9 +61,9 @@ private:
     const int table_size;
     real starting_alpha;
     void InitUnigramTable();
+    void FindTreeStart(FILE *f);
     static void *BasicTrainModelThread(void *param);
     void TrainModelThread(long long id);
-    int ReadWordIndex(FILE *fin);
 };
 
 #endif //DEPWORD2VEC_DEPSKGNEG_H
