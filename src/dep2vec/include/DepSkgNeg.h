@@ -56,6 +56,7 @@ private:
     long long file_size;
     long long layer1_size;
     long long word_count_actual;
+    long long tree_count_actual;
     char train_file[MAX_STRING];
     //Vocab v;
     const int table_size;

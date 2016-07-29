@@ -16,6 +16,7 @@ DepSkgNeg::DepSkgNeg(const Vocab& v):table_size(1e8),vocab(v){//initialize defau
     debug_mode=2;
     layer1_size=200;
     word_count_actual=0;
+    tree_count_actual=0;
     syn0=NULL;
     syn1neg=NULL;
     expTable = (real *)malloc((EXP_TABLE_SIZE + 1) * sizeof(real));
@@ -142,24 +143,20 @@ void* DepSkgNeg::BasicTrainModelThread(void *param){// multithread basic
 
 void DepSkgNeg::FindTreeStart(FILE *f) {
     char line[MAX_STRING];
-    bool flag= false;
-    fgets(line,MAX_STRING,f);
     //find a empty lines as the start of a tree
-    while(true){
-        if(!strcmp(line,"\n")) {
-            if(!flag)
-                flag = true;
-            else
-                break;
-        }
+    while(!feof(f)){
         fgets(line,MAX_STRING,f);
+        if(!strcmp(line,"\n")) {
+            break;
+        }
     }
 }
 
 void DepSkgNeg::TrainModelThread(long long id){
     long long a, b, d, word, last_word;
     int sentence_position = 0, sentence_length = 0;
-    long long word_count = 0, last_word_count = 0;
+    //long long word_count = 0, last_word_count = 0;
+    long long tree_count=0,last_tree_count=0;
     long long l1, l2, c, target, label,local_iter=iter;
     unsigned long long next_random = id;
     real f, g;
@@ -179,18 +176,26 @@ void DepSkgNeg::TrainModelThread(long long id){
     DepTree depTree(vocab);
 
     long long train_words=vocab.GetTrainWords();
+    long long train_trees=vocab.GetTrainTrees();
     while (1) {
-        if (word_count - last_word_count > 10000) {
-            word_count_actual += word_count - last_word_count;
-            last_word_count = word_count;
+        //if (word_count - last_word_count > 10000) {
+            //word_count_actual += word_count - last_word_count;
+            //last_word_count = word_count;
+         if(tree_count-last_tree_count>100){
+            tree_count_actual += tree_count - last_tree_count;
+            last_tree_count = tree_count;
             if ((debug_mode > 1)) {
                 now=clock();
-                printf("%cAlpha: %f  Progress: %.2f%%  Words/thread/sec: %.2fk  ", 13, alpha,
+                /*printf("%cAlpha: %f  Progress: %.2f%%  Words/thread/sec: %.2fk  ", 13, alpha,
                        word_count_actual / (real)(iter * train_words + 1) * 100,
-                       word_count_actual / ((real)(now - start + 1) / (real)CLOCKS_PER_SEC * 1000));
+                       word_count_actual / ((real)(now - start + 1) / (real)CLOCKS_PER_SEC * 1000));*/
+                printf("%cAlpha: %f  Progress: %.2f%%  Trees/thread/sec: %.2fk  ", 13, alpha,
+                       tree_count_actual / (real)(iter * train_trees + 1) * 100,
+                       tree_count_actual / ((real)(now - start + 1) / (real)CLOCKS_PER_SEC * 1000));
                 fflush(stdout);
             }
-            alpha = starting_alpha * (1 - word_count_actual / (real)(iter * train_words + 1));
+             // alpha = starting_alpha * (1 - word_count_actual / (real)(iter * train_words + 1));
+             alpha = starting_alpha * (1 - tree_count_actual / (real)(iter * train_trees + 1));
             if (alpha < starting_alpha * 0.0001) alpha = starting_alpha * 0.0001;
         }
         //Step1: load a tree into mem
@@ -198,7 +203,10 @@ void DepSkgNeg::TrainModelThread(long long id){
             depTree.GetDepTreeFromFilePointer(fi);
             sentence_length=depTree.GetSenlen();
             sentence_position = 1;
-            word_count+=depTree.GetWordCount();
+            if(sentence_length!=-1){
+                tree_count++;
+                word_count_actual+=depTree.GetWordCount();
+            }
         }
         /*if (sentence_length == 0) {
             while (1) {
@@ -221,7 +229,7 @@ void DepSkgNeg::TrainModelThread(long long id){
             sentence_position = 0;
         }*/
 
-        if (word_count > train_words / num_threads){
+        /*if (word_count > train_words / num_threads){
             word_count_actual += word_count - last_word_count;
             local_iter--;
             if(local_iter==0)
@@ -233,11 +241,25 @@ void DepSkgNeg::TrainModelThread(long long id){
             FindTreeStart(fi);
 
             continue;
+        }*/
+
+        if (tree_count > train_trees / num_threads || (sentence_length==-1 && feof(fi))){
+            word_count_actual += tree_count - last_tree_count;
+            local_iter--;
+            if(local_iter==0)
+                break;
+            tree_count = 0;
+            last_tree_count = 0;
+            sentence_length = 0;
+            fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
+            FindTreeStart(fi);
+
+            continue;
         }
 
         word = depTree.GetWordInPos(sentence_position);
 
-        if (word == -1) {
+        /*if (word == -1) {
             sentence_position++;
             if (sentence_position > sentence_length) {
                 if (feof(fi)) {
@@ -257,10 +279,10 @@ void DepSkgNeg::TrainModelThread(long long id){
                 continue;
             }
             continue;
-        }
+        }*/
 
         // The subsampling randomly discards frequent words while keeping the ranking same
-        if (sample > 0) {
+        /*if (sample > 0) {
             real ran = (sqrt(vocab.GetVocabWordCn(word) / (sample * train_words)) + 1) * (sample * train_words) / vocab.GetVocabWordCn(word);
             //real ran = (sqrt(vocab[word].cn / (sample * train_words)) + 1) * (sample * train_words) / vocab[word].cn;
             next_random = next_random * (unsigned long long)25214903917 + 11;
@@ -286,11 +308,11 @@ void DepSkgNeg::TrainModelThread(long long id){
                 continue;
             }
         }
-
+*/
         //for (c = 0; c < layer1_size; c++) neu1[c] = 0;
         for (c = 0; c < layer1_size; c++) neu1e[c] = 0;
         next_random = next_random * (unsigned long long)25214903917 + 11;
-        b = next_random % window;
+        b = next_random % window+1;
         vector<int> sam=depTree.GetSample(sentence_position,b);
 
 
@@ -362,14 +384,14 @@ void DepSkgNeg::TrainModelThread(long long id){
             last_word = depTree.GetWordInPos(c);
             if (last_word == -1) continue;
             // The subsampling randomly discards frequent words while keeping the ranking same
-            if (sample > 0) {
+           /* if (sample > 0) {
                 real ran = (sqrt(vocab.GetVocabWordCn(last_word) / (sample * train_words)) + 1) * (sample * train_words) / vocab.GetVocabWordCn(last_word);
                 //real ran = (sqrt(vocab[word].cn / (sample * train_words)) + 1) * (sample * train_words) / vocab[word].cn;
                 next_random = next_random * (unsigned long long) 25214903917 + 11;
                 if (ran < (next_random & 0xFFFF) / (real) 65536) {
                     continue;
                 }
-            }
+            }*/
 
             l1 = last_word * layer1_size;
             for (c = 0; c < layer1_size; c++) neu1e[c] = 0;
@@ -418,18 +440,20 @@ void DepSkgNeg::TrainModelThread(long long id){
         }
         //  }
         sentence_position++;
+        while(depTree.GetWordInPos(sentence_position)==-1 && sentence_position<=sentence_length)
+            sentence_position++;
         if (sentence_position > sentence_length) {
             if (feof(fi)) {
-                word_count_actual += word_count - last_word_count;
+                //word_count_actual += word_count - last_word_count;
+                tree_count_actual+=tree_count-last_tree_count;
                 local_iter--;
                 if (local_iter == 0) break;
-                word_count = 0;
-                last_word_count = 0;
-                sentence_length = 0;
+                //word_count = 0;
+                //last_word_count = 0;
+                tree_count=0;
+                last_tree_count=0;
                 fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
                 FindTreeStart(fi);
-
-                continue;
             }
             sentence_length = 0;
             continue;

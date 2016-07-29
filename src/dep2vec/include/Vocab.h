@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 
 #define MAX_STRING 1024    //the max length of word
 
@@ -28,6 +29,7 @@ public:
     long long GetVocabSize() const;
     long long GetVocabWordCn(long long i) const;
     long long GetTrainWords() const;
+    long long GetTrainTrees() const;
     char * GetVocabWord(long long a) const ;
     int SearchVocab(const char *word) const;// Returns position of a word in the vocabulary; if the word is not found, returns -1
 
@@ -35,6 +37,7 @@ public:
     ~Vocab();
 private:
     long long train_words;
+    long long train_trees;
     long long vocab_size;
     long long vocab_max_size;
     const int vocab_hash_size;// Maximum 30 * 0.7 = 21M words in the vocabulary
@@ -44,12 +47,12 @@ private:
     int *vocab_hash;
     // Reads a single word from a vocab file, assuming space + tab + EOL to be word boundaries
     void ReadWordFromVocab(char *word, FILE *fin);
-    void ReadWordFromTrainFile(char *word,FILE *fin);
+    int ReadWordFromTrainFile(char *word1,char *word2,FILE *fin);
     int GetWordHash(const char *word) const;// Returns hash value of a word
     //int VocabCompare(const void*a,const void *b);
     int AddWordToVocab(char *word);// Adds a word to the vocabulary
     void SortVocab();
     void ReduceVocab();
-    void DestroyVocab();
+    void ClearVocab();
 };
 #endif //DEPWORD2VEC_VOCAB_H
