@@ -37,7 +37,6 @@ public:
     void SetTrainfile(const char *f);
     void SetIter(int x);
 
-    ~DepSkgNeg();
 private:
     const Vocab& vocab;
     real sample;

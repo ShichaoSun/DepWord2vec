@@ -6,13 +6,20 @@
 DepTree::DepTree(const Vocab &v):vocab(v){
     senlen=-1;
     wordCount=0;
+    for (int i = 0; i <= MAX_SENTENCE_LENGTH; i++) {
+        deptree[i].parent = -1;
+        deptree[i].wordInVocab = -2;
+        deptree[i].child.clear();
+    }
 }
 
 void DepTree::ClearDepTree() {
-    for(int i=0;i<=senlen;i++){
-        deptree[i].parent=-1;
-        deptree[i].wordInVocab=-2;
-        deptree[i].child.clear();
+    if(senlen>=0) {
+        for (int i = 0; i <= senlen; i++) {
+            deptree[i].parent = -1;
+            deptree[i].wordInVocab = -2;
+            deptree[i].child.clear();
+        }
     }
     senlen=-1;
     wordCount=0;
@@ -139,7 +146,8 @@ vector<int> DepTree::GetSample(int pos,int window){
                     q.push(deptree[t].child[i]);
                 }
             }
-        }
+        } else
+            break;
     }
     return sam;
 }

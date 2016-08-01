@@ -5,7 +5,7 @@
   "layer1_size":200,
   "sample":1e-4,
   "negative":10,
-  "window":3,
+  "window":5,
   "threads":6,
   "save_vocab":"depvocab",
   "iter":5

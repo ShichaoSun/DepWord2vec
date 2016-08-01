@@ -189,9 +189,10 @@ void DepSkgNeg::TrainModelThread(long long id){
                 /*printf("%cAlpha: %f  Progress: %.2f%%  Words/thread/sec: %.2fk  ", 13, alpha,
                        word_count_actual / (real)(iter * train_words + 1) * 100,
                        word_count_actual / ((real)(now - start + 1) / (real)CLOCKS_PER_SEC * 1000));*/
-                printf("%cAlpha: %f  Progress: %.2f%%  Trees/thread/sec: %.2fk  ", 13, alpha,
+                printf("%cAlpha: %f  Tree Progress: %.2f%%  Trees/thread/sec: %.2fk  Words/thread/sec: %.2fk ", 13, alpha,
                        tree_count_actual / (real)(iter * train_trees + 1) * 100,
-                       tree_count_actual / ((real)(now - start + 1) / (real)CLOCKS_PER_SEC * 1000));
+                       tree_count_actual / ((real)(now - start + 1) / (real)CLOCKS_PER_SEC * 1000),
+                       word_count_actual / ((real)(now - start + 1) / (real)CLOCKS_PER_SEC * 1000));
                 fflush(stdout);
             }
              // alpha = starting_alpha * (1 - word_count_actual / (real)(iter * train_words + 1));
@@ -253,7 +254,6 @@ void DepSkgNeg::TrainModelThread(long long id){
             sentence_length = 0;
             fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
             FindTreeStart(fi);
-
             continue;
         }
 
@@ -505,6 +505,10 @@ void DepSkgNeg::TrainModel() {
     //for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, TrainModelThread, (void *)a);
     for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
 
+    printf("\nTrees trained: %lld\n", tree_count_actual/iter);
+    printf("Words trained: %lld\n", word_count_actual/iter);
+
+
     //  fo = fopen(output_file, "wb");
     //  if (fo == NULL) {
     //     fprintf(stderr, "Cannot open %s: permission denied\n", output_file);
@@ -603,20 +607,3 @@ void DepSkgNeg::SaveWordVectors(const char *output_file) {
     }
 }
 
-DepSkgNeg::~DepSkgNeg() {
-    //DestroyNet
-    if (syn0 != NULL) {
-        free(syn0);
-    }
-    /*
-    if (syn1 != NULL) {
-        free(syn1);
-    }
-     */
-    if (syn1neg != NULL) {
-        free(syn1neg);
-    }
-
-    free(table);
-    free(expTable);
-}

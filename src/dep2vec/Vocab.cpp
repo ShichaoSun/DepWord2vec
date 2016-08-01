@@ -259,7 +259,6 @@ int Vocab::ReadWordFromTrainFile(char *word1,char *word2,FILE *fin) {
                     for (int k = 0; k < strlen(p); k++) {
                         if (isalpha(p[k])) {
                             strcpy(word1, p);
-                            return 0;
                         }
                     }
                 }
@@ -307,7 +306,7 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
             fflush(stdout);
         }
          */
-        if(strlen(word1)>0) {
+        if(strlen(word1)>0 && strcmp(word1,"ROOT")) {
             i = SearchVocab(word1);
             if (i == -1)
                 AddWordToVocab(word1);
