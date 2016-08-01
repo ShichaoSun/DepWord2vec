@@ -5,11 +5,10 @@
 
 DepTree::DepTree(const Vocab &v):vocab(v){
     senlen=-1;
-    wordCount=0;
     for (int i = 0; i <= MAX_SENTENCE_LENGTH; i++) {
         deptree[i].parent = -1;
         deptree[i].wordInVocab = -2;
-        deptree[i].child.clear();
+        //deptree[i].child.clear();
     }
 }
 
@@ -22,7 +21,6 @@ void DepTree::ClearDepTree() {
         }
     }
     senlen=-1;
-    wordCount=0;
 }
 
 void DepTree::GetDepTreeFromFilePointer(FILE *fin){
@@ -33,7 +31,7 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin){
     while (true){
         if(feof(fin))
             return;
-        fgets(temp,MAX_STRING,fin);
+        fgets(temp,MAX_STRING,fin);  //read in a line
         if(strlen(temp)<2)
             continue;
         int j=0;
@@ -42,10 +40,13 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin){
                 break;
         if(j==strlen(temp)-1 && temp[j]=='\n')
             break;
+        else{
+            fprintf(stderr,"don't find the size of tree");
+            exit(1);
+        }
     }
     senlen=atoi(temp);
-    assert(senlen>0);
-    wordCount=senlen;
+    assert(senlen>0 && senlen+1 < MAX_SENTENCE_LENGTH);
 
     for(int i=0;i<senlen;i++){
         assert(!feof(fin));
@@ -53,30 +54,28 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin){
 
         char *q=temp;
 
-        p = strsep(&q, d);
+        p = strsep(&q, d);  //dep_rel
         assert(strlen(p)>0);
 
-        p = strsep(&q, d);
+        p = strsep(&q, d);  //parent word
         assert(strlen(p)>0);
-        int parentInVocab=vocab.SearchVocab(p);
+        int parentInVocab=vocab.SearchVocab(p);  //parent word id
 
-        p = strsep(&q, d);
+        p = strsep(&q, d);  //parent position in sentence
         assert(strlen(p)>0);
         int parentInSen=atoi(p);
         assert(parentInSen>-1);
 
-        p = strsep(&q, d);
+        p = strsep(&q, d);  //child word
         assert(strlen(p)>0);
         int childInVocab=vocab.SearchVocab(p);
-        if(childInVocab<0)
-            wordCount--;
 
-        p = strsep(&q, d);
+        p = strsep(&q, d);   //child position in sentence
         assert(strlen(p)>0);
         int childInSen=atoi(p);
         assert(childInSen>-1);
 
-        if(deptree[parentInSen].wordInVocab==-2)
+        if(deptree[parentInSen].wordInVocab==-2)   //-2: uninitialized ; -1: not in dictionary
             deptree[parentInSen].wordInVocab=parentInVocab;
         else
             assert(deptree[parentInSen].wordInVocab==parentInVocab);
@@ -104,50 +103,38 @@ int DepTree::GetSenlen() {
     return senlen;
 }
 
-int DepTree::GetWordCount() {
-    return wordCount;
-}
-
 vector<int> DepTree::GetSample(int pos,int window){
     vector<int> sam;
+    queue<int> q;
     if(window==0)
         return sam;
-    int p=deptree[pos].parent;
+    q.push(pos);
 
-    //to only parent
-    if(p!=0) {
-        for (int j = 0; j < window; j++) {//down to top sample
-            if (p == 0)
-                break;
-            sam.push_back(p);
-            p = deptree[p].parent;
-        }
-    }
+    int visited[senlen+1];
+    memset(visited,0,senlen+1);
 
-    if(deptree[pos].child.empty())
-        return sam;
-
-    queue<int> q;
-    //to child
-    for(int j=0;j<deptree[pos].child.size();j++){
-        q.push(deptree[pos].child[j]);
-    }
-
-    for(int j=0;j<window;j++){
-        if(!q.empty()) {
-            int qsize = q.size();
-            for (int k = 0; k < qsize; k++) {
-                int t = q.front();
-                sam.push_back(t);
+    for(int i=0;i<=window;i++){
+        unsigned long ql=q.size();
+        if(ql!=0) {
+            for (int j = 0; j < ql; j++) {
+                int cur = q.front();
                 q.pop();
-                if (deptree[t].child.empty())
-                    continue;
-                for (int i = 0; i < deptree[t].child.size(); i++) {
-                    q.push(deptree[t].child[i]);
-                }
+                visited[cur]=1;
+                int p=deptree[cur].parent;
+                if(p!=0 && visited[p]!=1)
+                    q.push(deptree[cur].parent);
+                if(!deptree[cur].child.empty())
+                    for(int k=0;k<deptree[cur].child.size();k++) {
+                        int c=deptree[cur].child[k];
+                        if (visited[c]!=1)
+                            q.push(c);
+                    }
             }
-        } else
+        }else
             break;
     }
+    for(int i=0;i<senlen+1;i++)
+        if(visited[i] && i!=pos)
+            sam.push_back(i);
     return sam;
 }

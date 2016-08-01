@@ -155,7 +155,7 @@ void DepSkgNeg::FindTreeStart(FILE *f) {
 void DepSkgNeg::TrainModelThread(long long id){
     long long a, b, d, word, last_word;
     int sentence_position = 0, sentence_length = 0;
-    //long long word_count = 0, last_word_count = 0;
+    long long word_count = 0, last_word_count = 0;
     long long tree_count=0,last_tree_count=0;
     long long l1, l2, c, target, label,local_iter=iter;
     unsigned long long next_random = id;
@@ -175,40 +175,57 @@ void DepSkgNeg::TrainModelThread(long long id){
 
     DepTree depTree(vocab);
 
-    long long train_words=vocab.GetTrainWords();
+    long long total_words=vocab.GetTotalWords();
     long long train_trees=vocab.GetTrainTrees();
     while (1) {
         //if (word_count - last_word_count > 10000) {
-            //word_count_actual += word_count - last_word_count;
-            //last_word_count = word_count;
-         if(tree_count-last_tree_count>100){
-            tree_count_actual += tree_count - last_tree_count;
+        //word_count_actual += word_count - last_word_count;
+        //last_word_count = word_count;
+        if (tree_count - last_tree_count >= 100) {  //update the learning rate for every 100 trees
+            tree_count_actual += tree_count - last_tree_count;  //global count of trees
+            word_count_actual += word_count - last_word_count;
             last_tree_count = tree_count;
+            last_word_count = word_count;
             if ((debug_mode > 1)) {
-                now=clock();
+                now = clock();
                 /*printf("%cAlpha: %f  Progress: %.2f%%  Words/thread/sec: %.2fk  ", 13, alpha,
                        word_count_actual / (real)(iter * train_words + 1) * 100,
                        word_count_actual / ((real)(now - start + 1) / (real)CLOCKS_PER_SEC * 1000));*/
-                printf("%cAlpha: %f  Tree Progress: %.2f%%  Trees/thread/sec: %.2fk  Words/thread/sec: %.2fk ", 13, alpha,
-                       tree_count_actual / (real)(iter * train_trees + 1) * 100,
-                       tree_count_actual / ((real)(now - start + 1) / (real)CLOCKS_PER_SEC * 1000),
-                       word_count_actual / ((real)(now - start + 1) / (real)CLOCKS_PER_SEC * 1000));
+                printf("%cAlpha: %f  Tree Progress: %.2f%%  Word Progress: %.2f%%  Trees/thread/sec: %.2fk  Words/thread/sec: %.2fk ", 13,
+                       alpha,
+                       tree_count_actual / (real) (iter * train_trees + 1) * 100,
+                       word_count_actual / (real) (iter * total_words + 1) * 100,
+                       tree_count_actual / ((real) (now - start + 1) / (real) CLOCKS_PER_SEC * 1000),
+                       word_count_actual / ((real) (now - start + 1) / (real) CLOCKS_PER_SEC * 1000));
                 fflush(stdout);
             }
-             // alpha = starting_alpha * (1 - word_count_actual / (real)(iter * train_words + 1));
-             alpha = starting_alpha * (1 - tree_count_actual / (real)(iter * train_trees + 1));
+            // alpha = starting_alpha * (1 - word_count_actual / (real)(iter * train_words + 1));
+            alpha = starting_alpha * (1 - tree_count_actual / (real) (iter * train_trees + 1));
             if (alpha < starting_alpha * 0.0001) alpha = starting_alpha * 0.0001;
         }
         //Step1: load a tree into mem
-        if (sentence_length == 0) {
-            depTree.GetDepTreeFromFilePointer(fi);
-            sentence_length=depTree.GetSenlen();
-            sentence_position = 1;
-            if(sentence_length!=-1){
-                tree_count++;
-                word_count_actual+=depTree.GetWordCount();
-            }
-        }
+        //if (sentence_length == 0) {
+        depTree.GetDepTreeFromFilePointer(fi);
+        sentence_length = depTree.GetSenlen();
+        if (sentence_length != -1) {
+            tree_count++;
+            word_count += sentence_length;
+        } else if (feof(fi)) {
+            tree_count_actual += tree_count - last_tree_count;
+            word_count_actual += word_count - last_word_count;
+            local_iter--;
+            if (local_iter == 0)
+                break;
+            tree_count = 0;
+            word_count = 0;
+            last_tree_count = 0;
+            last_word_count = 0;
+            fseek(fi, file_size / (long long) num_threads * id, SEEK_SET);
+            FindTreeStart(fi);
+            continue;
+        } else
+            continue;
+        //}
         /*if (sentence_length == 0) {
             while (1) {
                 word = ReadWordIndex(fi);
@@ -244,8 +261,8 @@ void DepSkgNeg::TrainModelThread(long long id){
             continue;
         }*/
 
-        if (tree_count > train_trees / num_threads || (sentence_length==-1 && feof(fi))){
-            word_count_actual += tree_count - last_tree_count;
+        /*if ( word_count_actual>total_words/num_threads ||(sentence_length==-1 && feof(fi))){
+            tree_count_actual += tree_count - last_tree_count;
             local_iter--;
             if(local_iter==0)
                 break;
@@ -255,194 +272,194 @@ void DepSkgNeg::TrainModelThread(long long id){
             fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
             FindTreeStart(fi);
             continue;
-        }
-
-        word = depTree.GetWordInPos(sentence_position);
-
-        /*if (word == -1) {
-            sentence_position++;
-            if (sentence_position > sentence_length) {
-                if (feof(fi)) {
-                    word_count_actual += word_count - last_word_count;
-                    local_iter--;
-                    if(local_iter==0)
-                        break;
-                    word_count = 0;
-                    last_word_count = 0;
-                    sentence_length = 0;
-                    fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
-                    FindTreeStart(fi);
-
-                    continue;
-                }
-                sentence_length = 0;
-                continue;
-            }
-            continue;
         }*/
+        //step2:train a tree
+        for (sentence_position = 1; sentence_position <= sentence_length; sentence_position++) {
 
-        // The subsampling randomly discards frequent words while keeping the ranking same
-        /*if (sample > 0) {
-            real ran = (sqrt(vocab.GetVocabWordCn(word) / (sample * train_words)) + 1) * (sample * train_words) / vocab.GetVocabWordCn(word);
-            //real ran = (sqrt(vocab[word].cn / (sample * train_words)) + 1) * (sample * train_words) / vocab[word].cn;
-            next_random = next_random * (unsigned long long)25214903917 + 11;
-            if (ran < (next_random & 0xFFFF) / (real)65536) {
-                sentence_position++;
-                if (sentence_position > sentence_length) {
-                    if (feof(fi)) {
-                        word_count_actual += word_count - last_word_count;
-                        local_iter--;
-                        if(local_iter==0)
-                            break;
-                        word_count = 0;
-                        last_word_count = 0;
-                        sentence_length = 0;
-                        fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
-                        FindTreeStart(fi);
+            word = depTree.GetWordInPos(sentence_position);
 
+            if (word != -1) {
+
+
+                // The subsampling randomly discards frequent words while keeping the ranking same
+                /*if (sample > 0) {
+                    real ran = (sqrt(vocab.GetVocabWordCn(word) / (sample * train_words)) + 1) * (sample * train_words) / vocab.GetVocabWordCn(word);
+                    //real ran = (sqrt(vocab[word].cn / (sample * train_words)) + 1) * (sample * train_words) / vocab[word].cn;
+                    next_random = next_random * (unsigned long long)25214903917 + 11;
+                    if (ran < (next_random & 0xFFFF) / (real)65536) {
+                        sentence_position++;
+                        if (sentence_position > sentence_length) {
+                            if (feof(fi)) {
+                                word_count_actual += word_count - last_word_count;
+                                local_iter--;
+                                if(local_iter==0)
+                                    break;
+                                word_count = 0;
+                                last_word_count = 0;
+                                sentence_length = 0;
+                                fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
+                                FindTreeStart(fi);
+
+                                continue;
+                            }
+                            sentence_length = 0;
+                            continue;
+                        }
                         continue;
                     }
-                    sentence_length = 0;
-                    continue;
                 }
-                continue;
-            }
-        }
-*/
-        //for (c = 0; c < layer1_size; c++) neu1[c] = 0;
-        for (c = 0; c < layer1_size; c++) neu1e[c] = 0;
-        next_random = next_random * (unsigned long long)25214903917 + 11;
-        b = next_random % window+1;
-        vector<int> sam=depTree.GetSample(sentence_position,b);
-
-
-        /*
-        if (cbow) {  //train the cbow architecture
-            // in -> hidden
-            for (a = b; a < window * 2 + 1 - b; a++) if (a != window) {
-                    c = sentence_position - window + a;
-                    if (c < 0) continue;
-                    if (c >= sentence_length) continue;
-                    last_word = sen[c];
-                    if (last_word == -1) continue;
-                    for (c = 0; c < layer1_size; c++) neu1[c] += syn0[c + last_word * layer1_size];
-                }
-            if (hs) for (d = 0; d < vocab[word].codelen; d++) {
-                    f = 0;
-                    l2 = vocab[word].point[d] * layer1_size;
-                    // Propagate hidden -> output
-                    for (c = 0; c < layer1_size; c++) f += neu1[c] * syn1[c + l2];
-                    if (f <= -MAX_EXP) continue;
-                    else if (f >= MAX_EXP) continue;
-                    else f = expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
-                    // 'g' is the gradient multiplied by the learning rate
-                    g = (1 - vocab[word].code[d] - f) * alpha;
-                    // Propagate errors output -> hidden
-                    for (c = 0; c < layer1_size; c++) neu1e[c] += g * syn1[c + l2];
-                    // Learn weights hidden -> output
-                    for (c = 0; c < layer1_size; c++) syn1[c + l2] += g * neu1[c];
-                }
-            // NEGATIVE SAMPLING
-            if (negative > 0) for (d = 0; d < negative + 1; d++) {
-                    if (d == 0) {
-                        target = word;
-                        label = 1;
-                    } else {
-                        next_random = next_random * (unsigned long long)25214903917 + 11;
-                        target = table[(next_random >> 16) % table_size];
-                        if (target == 0) target = next_random % (vocab_size - 1) + 1;
-                        if (target == word) continue;
-                        label = 0;
-                    }
-                    l2 = target * layer1_size;
-                    f = 0;
-                    for (c = 0; c < layer1_size; c++) f += neu1[c] * syn1neg[c + l2];
-                    if (f > MAX_EXP) g = (label - 1) * alpha;
-                    else if (f < -MAX_EXP) g = (label - 0) * alpha;
-                    else g = (label - expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
-                    for (c = 0; c < layer1_size; c++) neu1e[c] += g * syn1neg[c + l2];
-                    for (c = 0; c < layer1_size; c++) syn1neg[c + l2] += g * neu1[c];
-                }
-            // hidden -> in
-            for (a = b; a < window * 2 + 1 - b; a++) if (a != window) {
-                    c = sentence_position - window + a;
-                    if (c < 0) continue;
-                    if (c >= sentence_length) continue;
-                    last_word = sen[c];
-                    if (last_word == -1) continue;
-                    for (c = 0; c < layer1_size; c++) syn0[c + last_word * layer1_size] += neu1e[c];
-                }
-        } else {  //train skip-gram*/
-        unsigned long s_size=sam.size();
-        for(a=0;a<s_size;a++) {
-            //for (a = b; a < window * 2 + 1 - b; a++) if (a != window) {
-            // c = sentence_position - window + a;
-            c = sam[a];
-            // if (c < 0) continue;
-            // if (c >= sentence_length) continue;
-            //last_word = sen[c];
-            last_word = depTree.GetWordInPos(c);
-            if (last_word == -1) continue;
-            // The subsampling randomly discards frequent words while keeping the ranking same
-           /* if (sample > 0) {
-                real ran = (sqrt(vocab.GetVocabWordCn(last_word) / (sample * train_words)) + 1) * (sample * train_words) / vocab.GetVocabWordCn(last_word);
-                //real ran = (sqrt(vocab[word].cn / (sample * train_words)) + 1) * (sample * train_words) / vocab[word].cn;
+        */
+                //for (c = 0; c < layer1_size; c++) neu1[c] = 0;
+                for (c = 0; c < layer1_size; c++) neu1e[c] = 0;  //vector to accumulate the updates
                 next_random = next_random * (unsigned long long) 25214903917 + 11;
-                if (ran < (next_random & 0xFFFF) / (real) 65536) {
-                    continue;
-                }
-            }*/
+                b = next_random % window + 1;
+                vector<int> sam = depTree.GetSample(sentence_position, b);
 
-            l1 = last_word * layer1_size;
-            for (c = 0; c < layer1_size; c++) neu1e[c] = 0;
-            // HIERARCHICAL SOFTMAX
-            /*
-            if (hs) for (d = 0; d < vocab[word].codelen; d++) {
-                    f = 0;
-                    l2 = vocab[word].point[d] * layer1_size;
-                    // Propagate hidden -> output
-                    for (c = 0; c < layer1_size; c++) f += syn0[c + l1] * syn1[c + l2];
-                    if (f <= -MAX_EXP) continue;
-                    else if (f >= MAX_EXP) continue;
-                    else f = expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
-                    // 'g' is the gradient multiplied by the learning rate
-                    g = (1 - vocab[word].code[d] - f) * alpha;
-                    // Propagate errors output -> hidden
-                    for (c = 0; c < layer1_size; c++) neu1e[c] += g * syn1[c + l2];
-                    // Learn weights hidden -> output
-                    for (c = 0; c < layer1_size; c++) syn1[c + l2] += g * syn0[c + l1];
-                }*/
-            // NEGATIVE SAMPLING
-            if (negative > 0)
-                for (d = 0; d < negative + 1; d++) {
-                    if (d == 0) {
-                        target = word;
-                        label = 1;
-                    } else {
-                        next_random = next_random * (unsigned long long) 25214903917 + 11;
-                        target = table[(next_random >> 16) % table_size];
-                        long long vocab_size = vocab.GetVocabSize();
-                        if (target == 0) target = next_random % (vocab_size - 1) + 1;
-                        if (target == word) continue;
-                        label = 0;
-                    }
-                    l2 = target * layer1_size;
-                    f = 0;
-                    for (c = 0; c < layer1_size; c++) f += syn0[c + l1] * syn1neg[c + l2];
-                    if (f > MAX_EXP) g = (label - 1) * alpha;
-                    else if (f < -MAX_EXP) g = (label - 0) * alpha;
-                    else g = (label - expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
-                    for (c = 0; c < layer1_size; c++) neu1e[c] += g * syn1neg[c + l2];
-                    for (c = 0; c < layer1_size; c++) syn1neg[c + l2] += g * syn0[c + l1];
+
+                /*
+                if (cbow) {  //train the cbow architecture
+                    // in -> hidden
+                    for (a = b; a < window * 2 + 1 - b; a++) if (a != window) {
+                            c = sentence_position - window + a;
+                            if (c < 0) continue;
+                            if (c >= sentence_length) continue;
+                            last_word = sen[c];
+                            if (last_word == -1) continue;
+                            for (c = 0; c < layer1_size; c++) neu1[c] += syn0[c + last_word * layer1_size];
+                        }
+                    if (hs) for (d = 0; d < vocab[word].codelen; d++) {
+                            f = 0;
+                            l2 = vocab[word].point[d] * layer1_size;
+                            // Propagate hidden -> output
+                            for (c = 0; c < layer1_size; c++) f += neu1[c] * syn1[c + l2];
+                            if (f <= -MAX_EXP) continue;
+                            else if (f >= MAX_EXP) continue;
+                            else f = expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
+                            // 'g' is the gradient multiplied by the learning rate
+                            g = (1 - vocab[word].code[d] - f) * alpha;
+                            // Propagate errors output -> hidden
+                            for (c = 0; c < layer1_size; c++) neu1e[c] += g * syn1[c + l2];
+                            // Learn weights hidden -> output
+                            for (c = 0; c < layer1_size; c++) syn1[c + l2] += g * neu1[c];
+                        }
+                    // NEGATIVE SAMPLING
+                    if (negative > 0) for (d = 0; d < negative + 1; d++) {
+                            if (d == 0) {
+                                target = word;
+                                label = 1;
+                            } else {
+                                next_random = next_random * (unsigned long long)25214903917 + 11;
+                                target = table[(next_random >> 16) % table_size];
+                                if (target == 0) target = next_random % (vocab_size - 1) + 1;
+                                if (target == word) continue;
+                                label = 0;
+                            }
+                            l2 = target * layer1_size;
+                            f = 0;
+                            for (c = 0; c < layer1_size; c++) f += neu1[c] * syn1neg[c + l2];
+                            if (f > MAX_EXP) g = (label - 1) * alpha;
+                            else if (f < -MAX_EXP) g = (label - 0) * alpha;
+                            else g = (label - expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
+                            for (c = 0; c < layer1_size; c++) neu1e[c] += g * syn1neg[c + l2];
+                            for (c = 0; c < layer1_size; c++) syn1neg[c + l2] += g * neu1[c];
+                        }
+                    // hidden -> in
+                    for (a = b; a < window * 2 + 1 - b; a++) if (a != window) {
+                            c = sentence_position - window + a;
+                            if (c < 0) continue;
+                            if (c >= sentence_length) continue;
+                            last_word = sen[c];
+                            if (last_word == -1) continue;
+                            for (c = 0; c < layer1_size; c++) syn0[c + last_word * layer1_size] += neu1e[c];
+                        }
+                } else {  //train skip-gram*/
+                unsigned long s_size = sam.size();
+                for (a = 0; a < s_size; a++) {
+                    //for (a = b; a < window * 2 + 1 - b; a++) if (a != window) {
+                    // c = sentence_position - window + a;
+                    c = sam[a];
+                    // if (c < 0) continue;
+                    // if (c >= sentence_length) continue;
+                    //last_word = sen[c];
+                    last_word = depTree.GetWordInPos(c);
+                    if (last_word == -1) continue;
+                    // The subsampling randomly discards frequent words while keeping the ranking same
+                    /* if (sample > 0) {
+                         real ran = (sqrt(vocab.GetVocabWordCn(last_word) / (sample * train_words)) + 1) * (sample * train_words) / vocab.GetVocabWordCn(last_word);
+                         //real ran = (sqrt(vocab[word].cn / (sample * train_words)) + 1) * (sample * train_words) / vocab[word].cn;
+                         next_random = next_random * (unsigned long long) 25214903917 + 11;
+                         if (ran < (next_random & 0xFFFF) / (real) 65536) {
+                             continue;
+                         }
+                     }*/
+
+                    l1 = last_word * layer1_size;
+                    for (c = 0; c < layer1_size; c++) neu1e[c] = 0;
+                    // HIERARCHICAL SOFTMAX
+                    /*
+                    if (hs) for (d = 0; d < vocab[word].codelen; d++) {
+                            f = 0;
+                            l2 = vocab[word].point[d] * layer1_size;
+                            // Propagate hidden -> output
+                            for (c = 0; c < layer1_size; c++) f += syn0[c + l1] * syn1[c + l2];
+                            if (f <= -MAX_EXP) continue;
+                            else if (f >= MAX_EXP) continue;
+                            else f = expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
+                            // 'g' is the gradient multiplied by the learning rate
+                            g = (1 - vocab[word].code[d] - f) * alpha;
+                            // Propagate errors output -> hidden
+                            for (c = 0; c < layer1_size; c++) neu1e[c] += g * syn1[c + l2];
+                            // Learn weights hidden -> output
+                            for (c = 0; c < layer1_size; c++) syn1[c + l2] += g * syn0[c + l1];
+                        }*/
+                    // NEGATIVE SAMPLING
+                    if (negative > 0)
+                        for (d = 0; d < negative + 1; d++) {
+                            if (d == 0) {
+                                target = word;
+                                label = 1;
+                            } else {
+                                next_random = next_random * (unsigned long long) 25214903917 + 11;
+                                target = table[(next_random >> 16) % table_size];
+                                long long vocab_size = vocab.GetVocabSize();
+                                if (target == 0) target = next_random % (vocab_size - 1) + 1;
+                                if (target == word) continue;
+                                label = 0;
+                            }
+                            l2 = target * layer1_size;
+                            f = 0;
+                            for (c = 0; c < layer1_size; c++) f += syn0[c + l1] * syn1neg[c + l2];
+                            if (f > MAX_EXP) g = (label - 1) * alpha;
+                            else if (f < -MAX_EXP) g = (label - 0) * alpha;
+                            else g = (label - expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
+                            for (c = 0; c < layer1_size; c++) neu1e[c] += g * syn1neg[c + l2];
+                            for (c = 0; c < layer1_size; c++) syn1neg[c + l2] += g * syn0[c + l1];
+                        }
+                    // Learn weights input -> hidden
+                    for (c = 0; c < layer1_size; c++) syn0[c + l1] += neu1e[c];
                 }
-            // Learn weights input -> hidden
-            for (c = 0; c < layer1_size; c++) syn0[c + l1] += neu1e[c];
+            }
+            //  }
+            //sentence_position++;
         }
-        //  }
-        sentence_position++;
-        while(depTree.GetWordInPos(sentence_position)==-1 && sentence_position<=sentence_length)
-            sentence_position++;
-        if (sentence_position > sentence_length) {
+
+        //if (word_count > total_words / num_threads) {
+        if(tree_count > train_trees/num_threads){
+            tree_count_actual += tree_count - last_tree_count;
+            word_count_actual += word_count - last_word_count;
+            local_iter--;
+            if (local_iter == 0)
+                break;
+            tree_count = 0;
+            last_tree_count = 0;
+            word_count = 0;
+            last_word_count = 0;
+            fseek(fi, file_size / (long long) num_threads * id, SEEK_SET);
+            FindTreeStart(fi);
+            continue;
+        }
+
+        /*if (sentence_position > sentence_length) {
             if (feof(fi)) {
                 //word_count_actual += word_count - last_word_count;
                 tree_count_actual+=tree_count-last_tree_count;
@@ -457,7 +474,7 @@ void DepSkgNeg::TrainModelThread(long long id){
             }
             sentence_length = 0;
             continue;
-        }
+        }*/
     }
     fclose(fi);
     //free(neu1);

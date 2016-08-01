@@ -1,11 +1,11 @@
 {
   "train_file":"tree",
-  "output_file":"dep2vec.bin",
+  "output_file":"dep2vec1.bin",
   "binary":1,
   "layer1_size":200,
   "sample":1e-4,
   "negative":10,
-  "window":5,
+  "window":2,
   "threads":6,
   "save_vocab":"depvocab",
   "iter":5

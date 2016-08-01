@@ -8,6 +8,7 @@
 #include "Vocab.h"
 #include <vector>
 #include <queue>
+
 using namespace std;
 
 #define MAX_SENTENCE_LENGTH 1024
@@ -27,7 +28,6 @@ public:
     int GetWordCount();
     vector<int> GetSample(int pos,int window);
 private:
-    int wordCount;
     int senlen;
     TreeNode deptree[MAX_SENTENCE_LENGTH+1];
     const Vocab &vocab;
