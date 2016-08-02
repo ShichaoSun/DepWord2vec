@@ -8,8 +8,11 @@
 #include "Vocab.h"
 #include <vector>
 #include <queue>
+#include <math.h>
 
 using namespace std;
+
+typedef float real;
 
 #define MAX_SENTENCE_LENGTH 1024
 
@@ -25,14 +28,16 @@ public:
     void GetDepTreeFromFilePointer(FILE *fin);
     int GetWordInPos(int pos);
     int GetSenlen();
-    int GetWordCount();
-    vector<int> GetSample(int pos,int window);
+    int GetWordCountActual();
+    vector<int> GetSample(int pos,int window,real sample, unsigned long long &next_random);// get sample
 private:
+    int wordCountActual;
     int senlen;
     TreeNode deptree[MAX_SENTENCE_LENGTH+1];
     const Vocab &vocab;
 
-    void ClearDepTree();
+    int SubSampling(int pos,int *visited,queue<int> &q,vector<int> &sam,real sample,unsigned long long &next_random);// recursive subsampling
+    void ClearDepTree();// clear the tree
 };
 
 

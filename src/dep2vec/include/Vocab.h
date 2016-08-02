@@ -29,6 +29,7 @@ public:
     long long GetVocabSize() const;
     long long GetVocabWordCn(long long i) const;
     long long GetTotalWords() const;
+    long long GetTrainWords() const;
     long long GetTrainTrees() const;
     char * GetVocabWord(long long a) const ;
     int SearchVocab(const char *word) const;// Returns position of a word in the vocabulary; if the word is not found, returns -1
@@ -37,6 +38,7 @@ public:
     ~Vocab();
 private:
     long long total_words;
+    long long train_words;
     long long train_trees;
     long long vocab_size;
     long long vocab_max_size;

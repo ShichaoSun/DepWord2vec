@@ -7,11 +7,8 @@
 
 #include <pthread.h>
 
-#include <math.h>
-#include "Vocab.h"
 #include "DepTree.h"
 
-typedef float real;
 #define EXP_TABLE_SIZE 1000
 #define MAX_EXP 6
 
@@ -54,6 +51,7 @@ private:
     clock_t start;
     long long file_size;
     long long layer1_size;
+    long long word_count_total;
     long long word_count_actual;
     long long tree_count_actual;
     char train_file[MAX_STRING];

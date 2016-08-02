@@ -4,11 +4,11 @@
 #include "DepTree.h"
 
 DepTree::DepTree(const Vocab &v):vocab(v){
+    wordCountActual=0;
     senlen=-1;
     for (int i = 0; i <= MAX_SENTENCE_LENGTH; i++) {
         deptree[i].parent = -1;
         deptree[i].wordInVocab = -2;
-        //deptree[i].child.clear();
     }
 }
 
@@ -21,6 +21,7 @@ void DepTree::ClearDepTree() {
         }
     }
     senlen=-1;
+    wordCountActual=0;
 }
 
 void DepTree::GetDepTreeFromFilePointer(FILE *fin){
@@ -48,13 +49,15 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin){
     senlen=atoi(temp);
     assert(senlen>0 && senlen+1 < MAX_SENTENCE_LENGTH);
 
+    wordCountActual=senlen;
+
     for(int i=0;i<senlen;i++){
         assert(!feof(fin));
         fgets(temp,MAX_STRING,fin);
 
         char *q=temp;
 
-        p = strsep(&q, d);  //dep_rel
+        p = strsep(&q, d);  //dep_relationship
         assert(strlen(p)>0);
 
         p = strsep(&q, d);  //parent word
@@ -80,10 +83,13 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin){
         else
             assert(deptree[parentInSen].wordInVocab==parentInVocab);
 
-        if(deptree[childInSen].wordInVocab==-2)
+        if(deptree[childInSen].wordInVocab==-2) //-2: uninitialized ; -1: not in dictionary
             deptree[childInSen].wordInVocab=childInVocab;
         else
             assert(deptree[childInSen].wordInVocab==childInVocab);
+
+        if(childInVocab==-1)  // -1: not in dictionary,and it is not trained
+            wordCountActual--;
 
         deptree[childInSen].parent=parentInSen;
         deptree[parentInSen].child.push_back(childInSen);
@@ -99,42 +105,96 @@ int DepTree::GetWordInPos(int pos) {
     return deptree[pos].wordInVocab;
 }
 
+int DepTree::GetWordCountActual() {
+    return wordCountActual;
+}
+
 int DepTree::GetSenlen() {
     return senlen;
 }
 
-vector<int> DepTree::GetSample(int pos,int window){
+int DepTree::SubSampling(int pos, int *visited, queue<int> &q, vector<int> &sam, real sample, unsigned long long &next_random){// frequent words will be seen empty,and use its parent and children replacing its positon
+    if(pos==0 || visited[pos])
+        return 0;
+
+    visited[pos]=1;
+
+    long long word=deptree[pos].wordInVocab;
+    if(word==-1){
+        q.push(pos);
+        return 0;
+    }
+
+    long long train_words=vocab.GetTrainWords();
+
+    real ran = (sqrt(vocab.GetVocabWordCn(word) / (sample * train_words)) + 1) * (sample * train_words) / vocab.GetVocabWordCn(word);
+    //real ran = (sqrt(vocab[word].cn / (sample * train_words)) + 1) * (sample * train_words) / vocab[word].cn;
+    next_random = next_random * (unsigned long long) 25214903917 + 11;
+
+    if (ran < (next_random & 0xFFFF) / (real) 65536){
+        SubSampling(deptree[pos].parent,visited,q,sam,sample,next_random);
+        if(!deptree[pos].child.empty())
+            for(int i=0;i<deptree[pos].child.size();i++)
+                SubSampling(deptree[pos].child[i],visited,q,sam,sample,next_random);
+    }else{
+        q.push(pos);
+        sam.push_back(pos);
+    }
+
+    return 0;
+}
+
+vector<int> DepTree::GetSample(int pos, int window, real sample, unsigned long long &next_random){// get sample
     vector<int> sam;
     queue<int> q;
     if(window==0)
         return sam;
-    q.push(pos);
 
     int visited[senlen+1];
     memset(visited,0,senlen+1);
 
-    for(int i=0;i<=window;i++){
-        unsigned long ql=q.size();
-        if(ql!=0) {
-            for (int j = 0; j < ql; j++) {
-                int cur = q.front();
-                q.pop();
-                visited[cur]=1;
-                int p=deptree[cur].parent;
-                if(p!=0 && visited[p]!=1)
-                    q.push(deptree[cur].parent);
-                if(!deptree[cur].child.empty())
-                    for(int k=0;k<deptree[cur].child.size();k++) {
-                        int c=deptree[cur].child[k];
-                        if (visited[c]!=1)
-                            q.push(c);
-                    }
+    visited[pos]=1;
+    q.push(pos);
+
+    for(int i=0;i<window;i++) {// BFS , window times
+        unsigned long ql = q.size();
+        if (ql==0) break;
+        for (int j = 0; j < ql; j++) {
+            int cur = q.front();
+            q.pop();
+            //to parent
+            int p = deptree[cur].parent;
+            if (p != 0 && visited[p] != 1) {
+                //The subsampling randomly discards frequent words while keeping the ranking same
+                if (sample > 0) {
+                    SubSampling(p, visited, q, sam, sample, next_random);
+                } else {
+                    visited[p] = 1;
+                    if(deptree[p].wordInVocab!=-1)
+                        sam.push_back(p);
+                    q.push(p);
+                }
+
             }
-        }else
-            break;
+
+            //to children
+            if (!deptree[cur].child.empty())
+                for (int k = 0; k < deptree[cur].child.size(); k++) {
+                    int c = deptree[cur].child[k];
+                    if(sample>0){
+                        SubSampling(c,visited, q, sam, sample, next_random);
+                    }else {
+                        if (visited[c] != 1) {
+                            visited[c]=1;
+                            if(deptree[c].wordInVocab!=-1)
+                                sam.push_back(c);
+                            q.push(c);
+                        }
+                    }
+                }
+        }
+
     }
-    for(int i=0;i<senlen+1;i++)
-        if(visited[i] && i!=pos)
-            sam.push_back(i);
+
     return sam;
 }

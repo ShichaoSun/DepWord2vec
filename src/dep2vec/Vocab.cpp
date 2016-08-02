@@ -8,6 +8,7 @@
 #include "Vocab.h"
 
 Vocab::Vocab():vocab_hash_size(30000000){
+    train_words=0;
     train_trees=-2;//two empty line at the begin of file
     total_words=0;
     vocab_max_size=1000;
@@ -103,11 +104,11 @@ void Vocab::SortVocab(){
     int a, size;
     unsigned int hash;
     // Sort the vocabulary and keep </s> at the first position
-    qsort(&vocab[1], vocab_size - 1, sizeof(vocab_word), VocabCompare);
+    qsort(&vocab[0], vocab_size, sizeof(vocab_word), VocabCompare);
     for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
     size = vocab_size;
-    //train_words = 0;
-    for (a = 1; a < size; a++) { // Skip </s>
+    train_words = 0;
+    for (a = 0; a < size; a++) {
         // Words occuring less than min_count times will be discarded from the vocab
         // if (vocab[a].cn < min_count) {
         if (vocab[a].cn < min_count) {
@@ -120,8 +121,7 @@ void Vocab::SortVocab(){
             hash=GetWordHash(vocab[a].word);
             while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
             vocab_hash[hash] = a;
-            //train_words +=vocab[a].cn;
-            //train_words += vocab[a].cn;
+            train_words +=vocab[a].cn;
         }
     }
     vocab = (vocab_word*)realloc(vocab, (vocab_size + 1) * sizeof(vocab_word));
@@ -233,13 +233,17 @@ long long Vocab::GetTrainTrees() const {
     return train_trees;
 }
 
+long long Vocab::GetTrainWords() const {
+    return train_words;
+}
+
 int Vocab::ReadWordFromTrainFile(char *word1,char *word2,FILE *fin) {
     char temp[MAX_STRING];
     while (true) {
         if (feof(fin))
             return 0;
         fgets(temp, MAX_STRING, fin);
-        if (!strcmp(temp, "\n"))
+        if (!strcmp(temp, "\n"))// find a new tree
             train_trees++;
         int i = 0;
         for (i = 0; i < strlen(temp) - 1; i++) {
@@ -247,40 +251,41 @@ int Vocab::ReadWordFromTrainFile(char *word1,char *word2,FILE *fin) {
                 break;
         }
 
-        if (i < strlen(temp) - 1) {
-            assert(strlen(temp) > 4);
+        if (i < strlen(temp) - 1) {// a line of words
+            assert(strlen(temp) > 4);// can be slip 4 string
             const char *d = " ";
             char *p;
             char *q = temp;
 
-            p = strsep(&q, d);
+            p = strsep(&q, d);// dep_relationship
             assert(strlen(p) > 0);
 
-            p = strsep(&q, d);
+            p = strsep(&q, d);// parent
             assert(strlen(p) > 0);
 
             for (int k = 0; k < strlen(p); k++) {
-                if (isalpha(p[k])) {
+                if (isalpha(p[k])) {// not punct
                     strcpy(word1, p);
                 }
             }
 
             p = strsep(&q, d);
-            assert(strlen(p) > 0);
-            if (atoi(p) == 0 && !strcmp(word1, "ROOT"))
+            assert(strlen(p) > 0);//parent position in sentence
+
+            if (atoi(p) == 0 && !strcmp(word1, "ROOT"))// not root
                 word1[0] = 0;
 
             p = strsep(&q, d);
-            assert(strlen(p)>0);
+            assert(strlen(p)>0);//child
             for (int k = 0; k < strlen(p); k++) {
-                if (isalpha(p[k])) {
+                if (isalpha(p[k])) {//not punct
                     strcpy(word2, p);
                     return 0;
                 }
             }
         }
 
-        if (i == strlen(temp) - 1)
+        if (i == strlen(temp) - 1)// assert is an end of tree
             assert(temp[i] == '\n');
 
     }
@@ -298,7 +303,6 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
         exit(1);
     }
     vocab_size = 0;
-    AddWordToVocab((char *)"</s>");
     while (1) {
         word1[0]=0;
         word2[0]=0;
@@ -327,6 +331,7 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
             if (i == -1)
                 AddWordToVocab(word2);
             else vocab[i].cn++;
+            train_words++;
             if (vocab_size > vocab_hash_size * 0.7)
                 ReduceVocab();
         }
@@ -337,7 +342,8 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
     SortVocab();
     printf("Vocab size: %lld\n", vocab_size);
     printf("Trees in train file: %lld\n", train_trees);
-    printf("Words in train file: %lld\n",total_words);
+    printf("Total Words in train file: %lld\n",total_words);
+    //printf("Words will be trained in train file: %lld\n",train_words);
     /*
     if (debug_mode > 0) {
         printf("Vocab size: %lld\n", vocab_size);
