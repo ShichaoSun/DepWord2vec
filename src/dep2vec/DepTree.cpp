@@ -150,18 +150,19 @@ vector<int> DepTree::GetSample(int pos, int window, real sample, unsigned long l
     if(window==0)
         return sam;
 
-    int visited[senlen+1];
-    memset(visited,0,senlen+1);
+    int visited[MAX_SENTENCE_LENGTH+1];
+    for(int i=0;i<MAX_SENTENCE_LENGTH+1;i++) visited[i]=0;
 
     visited[pos]=1;
     q.push(pos);
 
-    for(int i=0;i<window;i++) {// BFS , window times
+    for(int i=0;i<=window;i++) {// BFS , window times
         unsigned long ql = q.size();
         if (ql==0) break;
         for (int j = 0; j < ql; j++) {
             int cur = q.front();
             q.pop();
+
             //to parent
             int p = deptree[cur].parent;
             if (p != 0 && visited[p] != 1) {
