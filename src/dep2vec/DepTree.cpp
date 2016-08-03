@@ -156,7 +156,7 @@ vector<int> DepTree::GetSample(int pos, int window, real sample, unsigned long l
     visited[pos]=1;
     q.push(pos);
 
-    for(int i=0;i<=window;i++) {// BFS , window times
+    for(int i=0;i<window;i++) {// BFS , window times
         unsigned long ql = q.size();
         if (ql==0) break;
         for (int j = 0; j < ql; j++) {
