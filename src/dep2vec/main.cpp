@@ -19,6 +19,12 @@ int main(int argc, char **argv) {
     rapidjson::Document config;
     config.Parse(jsondata.c_str());
 
+    if (config.HasMember("min_count"))
+        vocab.SetMincount(config["min_count"].GetInt());
+
+    if (config.HasMember("tree_degree"))
+        vocab.SetTreeDegree(config["tree_degree"].GetInt());
+
     if (config.HasMember("train_file")) {
         std::string trainfile = config["train_file"].GetString();
         strcpy(train_file, trainfile.c_str());
@@ -32,9 +38,6 @@ int main(int argc, char **argv) {
         printf("train_file can't be empty!");
         return 0;
     }
-
-    if (config.HasMember("min_count"))
-        vocab.SetMincount(config["min_count"].GetInt());
 
     DepSkgNeg depskgneg(vocab);
     depskgneg.SetTrainfile(train_file);

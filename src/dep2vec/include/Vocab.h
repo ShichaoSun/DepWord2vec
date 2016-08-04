@@ -25,6 +25,7 @@ public:
     void SaveVocab(const char *save_vocab_file);
     void ReadVocab(const char *read_vocab_file);
     void SetMincount(int x);
+    void SetTreeDegree(int x);
 
     long long GetVocabSize() const;
     long long GetVocabWordCn(long long i) const;
@@ -33,7 +34,6 @@ public:
     long long GetTrainTrees() const;
     char * GetVocabWord(long long a) const ;
     int SearchVocab(const char *word) const;// Returns position of a word in the vocabulary; if the word is not found, returns -1
-
 
     ~Vocab();
 private:
@@ -46,6 +46,7 @@ private:
     struct vocab_word *vocab;
     int min_reduce;
     int min_count;
+    int tree_degree;
     int *vocab_hash;
     int ReadWordFromTrainFile(char *word1,char *word2,FILE *fin);
     int GetWordHash(const char *word) const;// Returns hash value of a word

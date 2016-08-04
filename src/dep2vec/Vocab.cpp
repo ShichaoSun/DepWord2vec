@@ -5,6 +5,7 @@
 #include "Vocab.h"
 
 Vocab::Vocab():vocab_hash_size(30000000){
+    tree_degree=0;
     train_words=0;
     train_trees=-2;//two empty line at the begin of file
     total_words=0;
@@ -69,6 +70,10 @@ long long Vocab::GetVocabWordCn(long long i) const {
 
 void Vocab::SetMincount(int x){
     min_count=x;
+}
+
+void Vocab::SetTreeDegree(int x) {
+    tree_degree=x;
 }
 
 void Vocab::ClearVocab(){
@@ -257,9 +262,8 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
         if(strlen(word1)==0 && strlen(word2)==0 && feof(fin))
             break;
         assert(strlen(word1)>0 || strlen(word2)>0);
-        total_words++;
 
-        if(strlen(word1)>0) {
+        if( tree_degree && strlen(word1)>0) {
             i = SearchVocab(word1);
             if (i == -1)
                 AddWordToVocab(word1);
@@ -274,6 +278,7 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
                 AddWordToVocab(word2);
             else vocab[i].cn++;
             train_words++;
+            total_words++;
             if (vocab_size > vocab_hash_size * 0.7)
                 ReduceVocab();
         }

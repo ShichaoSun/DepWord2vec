@@ -7,6 +7,6 @@
   "negative":10,
   "window":3,
   "threads":6,
-  "debug_mode":0,
-  "iter":3
+  "debug_mode":2,
+  "iter":5
 }
