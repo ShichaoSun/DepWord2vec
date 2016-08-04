@@ -1,9 +1,6 @@
 //
 // Created by bruce on 7/13/16.
 //
-//
-// Created by bruce on 16-7-4.
-//
 
 #include "Vocab.h"
 
@@ -30,7 +27,6 @@ int Vocab::SearchVocab(const char *word) const{// Returns position of a word in 
     unsigned int hash = GetWordHash(word);
     while (1) {
         if (vocab_hash[hash] == -1) return -1;
-        //if (!strcmp(word, vocab[vocab_hash[hash]].word)) return vocab_hash[hash];
         if (!strcmp(word,vocab[vocab_hash[hash]].word)) return vocab_hash[hash];
         hash = (hash + 1) % vocab_hash_size;
     }
@@ -43,9 +39,6 @@ char * Vocab::GetVocabWord(long long a) const {
 int Vocab::AddWordToVocab(char *word) {// Adds a word to the vocabulary
     unsigned int hash, length = strlen(word) + 1;
     if (length > MAX_STRING) length = MAX_STRING;
-    //vocab[vocab_size].word = (char *)calloc(length, sizeof(char));
-    //strcpy(vocab[vocab_size].word, word);
-    //vocab[vocab_size].cn = 0;
 
     vocab[vocab_size].word = (char *)calloc(length, sizeof(char));
     strcpy(vocab[vocab_size].word, word);
@@ -63,7 +56,6 @@ int Vocab::AddWordToVocab(char *word) {// Adds a word to the vocabulary
 }
 
 static int VocabCompare(const void*a,const void *b){
-    // return ((struct vocab_word *)b)->cn - ((struct vocab_word *)a)->cn;
     return (((vocab_word*)b)->cn - ((vocab_word*)a)->cn);
 }
 
@@ -86,16 +78,8 @@ void Vocab::ClearVocab(){
         if (vocab[a].word != NULL) {
             free(vocab[a].word);
         }
-        /*
-        if (vocab[a].code != NULL) {
-            free(vocab[a].code);
-        }
-        if (vocab[a].point != NULL) {
-            free(vocab[a].point);
-        }
-         */
+
     }
-    //free(vocab[vocab_size].word);
     free(vocab[vocab_size].word);
     free(vocab);
 }
@@ -110,10 +94,8 @@ void Vocab::SortVocab(){
     train_words = 0;
     for (a = 0; a < size; a++) {
         // Words occuring less than min_count times will be discarded from the vocab
-        // if (vocab[a].cn < min_count) {
         if (vocab[a].cn < min_count) {
             vocab_size--;
-            // free(vocab[a].word);
             free(vocab[a].word);
             vocab[a].word = NULL;
         } else {
@@ -126,18 +108,12 @@ void Vocab::SortVocab(){
     }
     vocab = (vocab_word*)realloc(vocab, (vocab_size + 1) * sizeof(vocab_word));
     // Allocate memory for the binary tree construction
-    /*
-    for (a = 0; a < vocab_size; a++) {
-        vocab[a].code = (char *)calloc(MAX_CODE_LENGTH, sizeof(char));
-        vocab[a].point = (int *)calloc(MAX_CODE_LENGTH, sizeof(int));
-    }
-     */
+
 }
 
 void Vocab::ReduceVocab() {
     int a, b = 0;
     unsigned int hash;
-    //for (a = 0; a < vocab_size; a++) if (vocab[a].cn > min_reduce) {
     for (a = 0; a < vocab_size; a++)
         if (vocab[a].cn > min_reduce) {
             vocab[b].cn = vocab[a].cn;
@@ -153,14 +129,12 @@ void Vocab::ReduceVocab() {
         while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
         vocab_hash[hash] = a;
     }
-    //fflush(stdout);
     min_reduce++;
 }
 
 void Vocab::SaveVocab(const char *save_vocab_file) {
     long long i;
     FILE *fo = fopen(save_vocab_file, "wb");
-    //for (i = 0; i < vocab_size; i++) fprintf(fo, "%s %lld\n", vocab[i].word, vocab[i].cn);
     for (i = 0; i < vocab_size; i++) fprintf(fo, "%s %lld\n", vocab[i].word, vocab[i].cn);
     fclose(fo);
 }
@@ -204,25 +178,10 @@ void Vocab::ReadVocab(const char *read_vocab_file) {
         if (feof(fin)) break;
         AddWordToVocab(word);
         fscanf(fin, "%lld%c", &vocab[a].cn, &c);
-        //i++;
     }
     SortVocab();
     fclose(fin);
-    /*
-    if (debug_mode > 0) {
-        printf("Vocab size: %lld\n", vocab_size);
-        printf("Words in train file: %lld\n", train_words);
-    }
 
-    fin = fopen(train_file, "rb");
-    if (fin == NULL) {
-        printf("ERROR: training data file not found!\n");
-        exit(1);
-    }
-    fseek(fin, 0, SEEK_END);
-    file_size = ftell(fin);
-    fclose(fin);
-     */
 }
 
 long long Vocab::GetTotalWords() const {
@@ -311,12 +270,7 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
             break;
         assert(strlen(word1)>0 || strlen(word2)>0);
         total_words++;
-        /*
-        if ((debug_mode > 1) && (train_words % 100000 == 0)) {
-            printf("%lldK%c", train_words / 1000, 13);
-            fflush(stdout);
-        }
-         */
+
         if(strlen(word1)>0) {
             i = SearchVocab(word1);
             if (i == -1)
@@ -343,14 +297,7 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
     printf("Vocab size: %lld\n", vocab_size);
     printf("Trees in train file: %lld\n", train_trees);
     printf("Total Words in train file: %lld\n",total_words);
-    //printf("Words will be trained in train file: %lld\n",train_words);
-    /*
-    if (debug_mode > 0) {
-        printf("Vocab size: %lld\n", vocab_size);
-        printf("Words in train file: %lld\n", train_words);
-    }
-    file_size = ftell(fin);
-*/
+
     fclose(fin);
 }
 

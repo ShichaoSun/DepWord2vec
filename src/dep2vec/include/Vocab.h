@@ -51,7 +51,6 @@ private:
     void ReadWordFromVocab(char *word, FILE *fin);
     int ReadWordFromTrainFile(char *word1,char *word2,FILE *fin);
     int GetWordHash(const char *word) const;// Returns hash value of a word
-    //int VocabCompare(const void*a,const void *b);
     int AddWordToVocab(char *word);// Adds a word to the vocabulary
     void SortVocab();
     void ReduceVocab();
