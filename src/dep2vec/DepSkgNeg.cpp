@@ -216,7 +216,6 @@ void DepSkgNeg::TrainModelThread(long long id){
                 // The subsampling randomly discards frequent words while keeping the ranking same
                 if (sample > 0) {
                     real ran = (sqrt(vocab.GetVocabWordCn(word) / (sample * train_words)) + 1) * (sample * train_words) / vocab.GetVocabWordCn(word);
-                    //real ran = (sqrt(vocab[word].cn / (sample * train_words)) + 1) * (sample * train_words) / vocab[word].cn;
                     next_random = next_random * (unsigned long long)25214903917 + 11;
                     if (ran < (next_random & 0xFFFF) / (real)65536)
                         continue;

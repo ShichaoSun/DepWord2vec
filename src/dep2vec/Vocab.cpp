@@ -139,33 +139,10 @@ void Vocab::SaveVocab(const char *save_vocab_file) {
     fclose(fo);
 }
 
-// Reads a single word from a vocab file, assuming space + tab + EOL to be word boundaries
-void Vocab::ReadWordFromVocab(char *word, FILE *fin) {
-    int a = 0, ch;
-    while (!feof(fin)) {
-        ch = fgetc(fin);
-        if (ch == 13) continue;
-        if ((ch == ' ') || (ch == '\t') || (ch == '\n')) {
-            if (a > 0) {
-                if (ch == '\n') ungetc(ch, fin);
-                break;
-            }
-            if (ch == '\n') {
-                strcpy(word, (char *)"</s>");
-                return;
-            } else continue;
-        }
-        word[a] = ch;
-        a++;
-        if (a >= MAX_STRING - 1) a--;   // Truncate too long words
-    }
-    word[a] = 0;
-}
 
 void Vocab::ReadVocab(const char *read_vocab_file) {
-    long long a;// i = 0;
-    char c;
-    char word[MAX_STRING];
+    long long a;
+    char line[MAX_STRING];
     FILE *fin = fopen(read_vocab_file, "rb");
     if (fin == NULL) {
         printf("Vocabulary file not found\n");
@@ -173,13 +150,24 @@ void Vocab::ReadVocab(const char *read_vocab_file) {
     }
     for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
     vocab_size = 0;
-    while (1) {
-        ReadWordFromVocab(word, fin);
-        if (feof(fin)) break;
-        AddWordToVocab(word);
-        fscanf(fin, "%lld%c", &vocab[a].cn, &c);
+    while (!feof(fin)) {
+        int i=0;
+        char ch='\n';
+        while(ch!=' '){
+            ch = fgetc(fin);
+            line[i]=ch;
+            i++;
+            assert(i<MAX_STRING);
+        }
+        line[i]=0;
+        a=AddWordToVocab(line);
+        fscanf(fin, "%lld%c", &vocab[a].cn, &ch);
+        assert(ch=='\n');
     }
     SortVocab();
+    printf("Vocab size: %lld\n", vocab_size);
+    printf("Trees in train file: %lld\n", train_trees);
+    printf("Total Words in train file: %lld\n",total_words);
     fclose(fin);
 
 }

@@ -47,8 +47,6 @@ private:
     int min_reduce;
     int min_count;
     int *vocab_hash;
-    // Reads a single word from a vocab file, assuming space + tab + EOL to be word boundaries
-    void ReadWordFromVocab(char *word, FILE *fin);
     int ReadWordFromTrainFile(char *word1,char *word2,FILE *fin);
     int GetWordHash(const char *word) const;// Returns hash value of a word
     int AddWordToVocab(char *word);// Adds a word to the vocabulary
