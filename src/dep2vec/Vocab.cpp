@@ -140,6 +140,8 @@ void Vocab::ReduceVocab() {
 void Vocab::SaveVocab(const char *save_vocab_file) {
     long long i;
     FILE *fo = fopen(save_vocab_file, "wb");
+    fprintf(fo, "train_trees %lld\n",train_trees);
+    fprintf(fo, "total_words %lld\n",total_words);
     for (i = 0; i < vocab_size; i++) fprintf(fo, "%s %lld\n", vocab[i].word, vocab[i].cn);
     fclose(fo);
 }
@@ -155,16 +157,41 @@ void Vocab::ReadVocab(const char *read_vocab_file) {
     }
     for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
     vocab_size = 0;
+
+    int i=0;
+    char ch='\n';
+    while(ch!=' '){
+        ch = fgetc(fin);
+        line[i]=ch;
+        i++;
+        assert(i<MAX_STRING);
+    }
+    line[i-1]=0;
+    assert(!strcmp(line,"train_trees"));
+    fscanf(fin, "%lld%c",&train_trees, &ch);
+    assert(ch=='\n');
+
+    i=0;
+    while(ch!=' '){
+        ch = fgetc(fin);
+        line[i]=ch;
+        i++;
+        assert(i<MAX_STRING);
+    }
+    line[i-1]=0;
+    assert(!strcmp(line,"total_words"));
+    fscanf(fin, "%lld%c", &total_words, &ch);
+    assert(ch=='\n');
+
     while (!feof(fin)) {
-        int i=0;
-        char ch='\n';
+        i=0;
         while(ch!=' '){
             ch = fgetc(fin);
             line[i]=ch;
             i++;
             assert(i<MAX_STRING);
         }
-        line[i]=0;
+        line[i-1]=0;
         a=AddWordToVocab(line);
         fscanf(fin, "%lld%c", &vocab[a].cn, &ch);
         assert(ch=='\n');
