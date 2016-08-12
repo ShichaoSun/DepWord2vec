@@ -4,10 +4,11 @@
   "output_file":"dep2vec.bin",
   "binary":1,
   "layer1_size":200,
-  "sample":0,
+  "sample":1e-4,
   "negative":2,
-  "window":3,
+  "window":2,
   "threads":6,
   "debug_mode":2,
-  "iter":5
+  "iter":2,
+  "bigdata":1
 }

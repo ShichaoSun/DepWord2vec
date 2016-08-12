@@ -24,6 +24,7 @@ public:
     void SaveWordVectors(const char *output_file);
 
     void SetBinary(int x);
+    void SetBigdata(int x);
     void SetWindow(int x);
     void SetAlpha(real x);
     void SetSample(real x);
@@ -32,17 +33,20 @@ public:
     void SetNumthread(int x);
     void Setlayer1_size(long long x);
     void SetTrainfile(const char *f);
+    void SetFromTempfile(const char *f);
     void SetIter(int x);
 
 private:
     const Vocab& vocab;
     real sample;
+    real starting_alpha;
     real alpha;
     real *syn0;
     real *syn1neg;
     real *expTable;
     int *table;
     int debug_mode;
+    int bigdata;
     int num_threads;
     int negative;
     int window;
@@ -54,10 +58,11 @@ private:
     long long word_count_total;
     long long word_count_actual;
     long long tree_count_actual;
+
     char train_file[MAX_STRING];
+    char fromTempfile[MAX_STRING];
     //Vocab v;
     const int table_size;
-    real starting_alpha;
     void InitUnigramTable();
     void FindTreeStart(FILE *f);
     static void *BasicTrainModelThread(void *param);

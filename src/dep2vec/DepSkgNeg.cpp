@@ -6,14 +6,18 @@
 
 DepSkgNeg::DepSkgNeg(const Vocab& v):table_size(1e8),vocab(v){//initialize default parameter
     alpha=0.025;
+    starting_alpha=0.025;
     binary=0;
     iter=5;
     file_size=0;
+    bigdata=0;
     debug_mode=2;
     layer1_size=200;
     word_count_total=0;
     word_count_actual=0;
     tree_count_actual=0;
+    train_file[0]=0;
+    fromTempfile[0]=0;
     syn0=NULL;
     syn1neg=NULL;
     expTable = (real *)malloc((EXP_TABLE_SIZE + 1) * sizeof(real));
@@ -65,8 +69,16 @@ void DepSkgNeg::Setlayer1_size(long long x){
     layer1_size=x;
 }
 
+void DepSkgNeg::SetBigdata(int x){
+    bigdata=x;
+}
+
 void DepSkgNeg::SetTrainfile(const char *f) {
     strcpy(train_file,f);
+}
+
+void DepSkgNeg::SetFromTempfile(const char *f) {
+    strcpy(fromTempfile,f);
 }
 
 void DepSkgNeg::SetDebugmode(int x) {
@@ -140,10 +152,12 @@ void DepSkgNeg::TrainModelThread(long long id){
     int sentence_position = 0, sentence_length = 0;
     long long total_word_count = 0, last_total_word_count = 0,train_word_count=0,last_train_word_count=0;
     long long tree_count=0,last_tree_count=0;
-    long long l1, l2, c, target, label,local_iter=iter;
+    long long l1, l2, c, target, label;
+    int local_iter=iter;
     unsigned long long next_random = id;
     real f, g;
-    clock_t now;
+    clock_t now,last_clock=start;
+
     real *neu1e = (real *)calloc(layer1_size, sizeof(real));
     FILE *fi = fopen(train_file, "rb");
     if (fi == NULL) {
@@ -159,6 +173,7 @@ void DepSkgNeg::TrainModelThread(long long id){
 
     long long train_words=vocab.GetTrainWords();
     long long train_trees=vocab.GetTrainTrees();
+
     while (1) {
         if (tree_count - last_tree_count >= 100) {  //update the learning rate for every 100 trees
             tree_count_actual += tree_count - last_tree_count;  //global count of trees
@@ -178,7 +193,27 @@ void DepSkgNeg::TrainModelThread(long long id){
             }
             alpha = starting_alpha * (1 - tree_count_actual / (real) (iter * train_trees + 1));
             if (alpha < starting_alpha * 0.0001) alpha = starting_alpha * 0.0001;
+
+            if(id==0 && bigdata==1){
+                now=clock();
+                if((real) ( now - last_clock + 1) / (real) CLOCKS_PER_SEC > 50){
+                    last_clock=now;
+                    FILE *ftemp = fopen("temp", "wb");
+                    fprintf(ftemp, "%d\n", local_iter);
+                    fprintf(ftemp, "%lf\n", alpha);
+                    for (long long ta = 0; ta < vocab.GetVocabSize(); ta++)
+                        for (long long tb = 0; tb < layer1_size; tb++)
+                            fprintf(ftemp, "%lf ", syn0[ta * layer1_size + tb]);
+                    fprintf(ftemp, "\n");
+                    for (long long ta = 0; ta < vocab.GetVocabSize(); ta++)
+                        for (long long tb = 0; tb < layer1_size; tb++)
+                            fprintf(ftemp, "%lf ", syn1neg[ta * layer1_size + tb]);
+                    fprintf(ftemp, "\n");
+                }
+            }
+
         }
+
         //Step1: load a tree into mem
         depTree.GetDepTreeFromFilePointer(fi);
         sentence_length = depTree.GetSenlen();
@@ -307,7 +342,26 @@ void DepSkgNeg::TrainModel() {
         fprintf(stderr, "cannot allocate memory for threads\n");
         exit(1);
     }
-    printf("Starting training using file %s\n", train_file);
+
+    if(bigdata==1 && strlen(fromTempfile)>0){
+        printf("Continuing training using file %s\n", fromTempfile);
+        FILE *fitemp=fopen(fromTempfile,"rb");
+        if (fitemp == NULL) {
+            printf("Temp file not found\n");
+            exit(1);
+        }
+        fscanf(fitemp,"%d\n",&iter);
+        fscanf(fitemp, "%lf\n",&alpha);
+
+        for (long long ta = 0; ta < vocab.GetVocabSize(); ta++)
+            for (long long tb = 0; tb < layer1_size; tb++)
+                fscanf(fitemp, "%lf ", &syn0[ta * layer1_size + tb]);
+        fscanf(fitemp, "\n");
+        for (long long ta = 0; ta < vocab.GetVocabSize(); ta++)
+            for (long long tb = 0; tb < layer1_size; tb++)
+                fscanf(fitemp, "%lf ", &syn1neg[ta * layer1_size + tb]);
+    } else
+        printf("Starting training using file %s\n", train_file);
 
     start = clock();
     InitUnigramTable();

@@ -12,7 +12,7 @@
 
 using namespace std;
 
-typedef float real;
+typedef double real;
 
 #define MAX_SENTENCE_LENGTH 1024
 
