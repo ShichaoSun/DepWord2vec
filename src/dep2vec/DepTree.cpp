@@ -42,8 +42,7 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin){
         if(j==strlen(temp)-1 && temp[j]=='\n')
             break;
         else{
-            fprintf(stderr,"don't find the size of tree");
-            exit(1);
+            continue;
         }
     }
     senlen=atoi(temp);

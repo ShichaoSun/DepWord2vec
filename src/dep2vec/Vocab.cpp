@@ -183,14 +183,16 @@ void Vocab::ReadVocab(const char *read_vocab_file) {
     fscanf(fin, "%lld%c", &total_words, &ch);
     assert(ch=='\n');
 
-    while (!feof(fin)) {
+    while (true) {
         i=0;
-        while(ch!=' '){
+        while(ch!=' ' && !feof(fin)){
             ch = fgetc(fin);
             line[i]=ch;
             i++;
-            assert(i<MAX_STRING);
         }
+        if(feof(fin))
+            break;
+        assert(i<MAX_STRING);
         line[i-1]=0;
         a=AddWordToVocab(line);
         fscanf(fin, "%lld%c", &vocab[a].cn, &ch);

@@ -39,13 +39,13 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    DepSkgNeg depskgneg(vocab);
-    depskgneg.SetTrainfile(train_file);
-
     if (config.HasMember("save_vocab")) {
         std::string save_vocab = config["save_vocab"].GetString();
         vocab.SaveVocab(save_vocab.c_str());
     }
+
+    DepSkgNeg depskgneg(vocab);
+    depskgneg.SetTrainfile(train_file);
 
     if (config.HasMember("layer1_size"))
         depskgneg.Setlayer1_size(config["layer1_size"].GetInt());
