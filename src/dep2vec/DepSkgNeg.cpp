@@ -196,7 +196,7 @@ void DepSkgNeg::TrainModelThread(long long id){
 
             if(id==0 && bigdata==1){
                 now=clock();
-                if((real) ( now - last_clock + 1) / (real) CLOCKS_PER_SEC > 50){
+                if((real) ( now - last_clock + 1) / (real) CLOCKS_PER_SEC > 3600){
                     last_clock=now;
                     FILE *ftemp = fopen("temp", "wb");
                     fprintf(ftemp, "%d\n", local_iter);
@@ -209,6 +209,7 @@ void DepSkgNeg::TrainModelThread(long long id){
                         for (long long tb = 0; tb < layer1_size; tb++)
                             fprintf(ftemp, "%lf ", syn1neg[ta * layer1_size + tb]);
                     fprintf(ftemp, "\n");
+                    fclose(ftemp);
                 }
             }
 

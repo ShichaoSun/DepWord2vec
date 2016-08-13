@@ -27,6 +27,8 @@ void DepTree::ClearDepTree() {
 void DepTree::GetDepTreeFromFilePointer(FILE *fin){
     ClearDepTree();  //clear
     char temp[MAX_STRING];
+    char rel[MAX_STRING];
+    char childw[MAX_STRING];
     char *p;
     const char *d=" ";
     while (true){
@@ -41,9 +43,8 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin){
                 break;
         if(j==strlen(temp)-1 && temp[j]=='\n')
             break;
-        else{
+        else
             continue;
-        }
     }
     senlen=atoi(temp);
     assert(senlen>0 && senlen+1 < MAX_SENTENCE_LENGTH);
@@ -58,10 +59,10 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin){
 
         p = strsep(&q, d);  //dep_relationship
         assert(strlen(p)>0);
+        strcpy(rel,p);
 
         p = strsep(&q, d);  //parent word
         assert(strlen(p)>0);
-        int parentInVocab=vocab.SearchVocab(p);  //parent word id
 
         p = strsep(&q, d);  //parent position in sentence
         assert(strlen(p)>0);
@@ -70,32 +71,36 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin){
 
         p = strsep(&q, d);  //child word
         assert(strlen(p)>0);
-        int childInVocab=vocab.SearchVocab(p);
+        strcpy(childw,p);
+        if(vocab.GetPosf()==0){
+            for(int k=0;k<strlen(childw);k++)
+                if(childw[k]=='/'){
+                    childw[k]=0;
+                    break;
+                }
+        }
+        if(vocab.GetRelf()!=0){
+            int templ=strlen(childw);
+            childw[templ]='/';
+            childw[templ+1]=0;
+            strcat(childw,rel);
+        }
+        int childInVocab=vocab.SearchVocab(childw);
 
         p = strsep(&q, d);   //child position in sentence
         assert(strlen(p)>0);
         int childInSen=atoi(p);
         assert(childInSen>-1);
 
-        if(deptree[parentInSen].wordInVocab==-2)   //-2: uninitialized ; -1: not in dictionary
-            deptree[parentInSen].wordInVocab=parentInVocab;
-        else
-            assert(deptree[parentInSen].wordInVocab==parentInVocab);
-
-        if(deptree[childInSen].wordInVocab==-2) //-2: uninitialized ; -1: not in dictionary
-            deptree[childInSen].wordInVocab=childInVocab;
-        else
-            assert(deptree[childInSen].wordInVocab==childInVocab);
-
         if(childInVocab==-1)  // -1: not in dictionary,and it is not trained
             wordCountActual--;
 
+        deptree[childInSen].wordInVocab=childInVocab;
         deptree[childInSen].parent=parentInSen;
         deptree[parentInSen].child.push_back(childInSen);
 
     }
 
-    assert(!feof(fin));
     fgets(temp,MAX_STRING,fin);
     assert(!strcmp(temp,"\n"));
 }

@@ -25,6 +25,12 @@ int main(int argc, char **argv) {
     if (config.HasMember("tree_degree"))
         vocab.SetTreeDegree(config["tree_degree"].GetInt());
 
+    if (config.HasMember("posf"))
+        vocab.SetPosf(config["posf"].GetInt());
+
+    if (config.HasMember("relf"))
+        vocab.SetRelf(config["relf"].GetInt());
+
     if (config.HasMember("train_file")) {
         std::string trainfile = config["train_file"].GetString();
         strcpy(train_file, trainfile.c_str());

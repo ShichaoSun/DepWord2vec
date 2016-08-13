@@ -7,6 +7,8 @@
 Vocab::Vocab():vocab_hash_size(30000000){
     tree_degree=0;
     train_words=0;
+    posf=1;
+    relf=0;
     train_trees=-2;//two empty line at the begin of file
     total_words=0;
     vocab_max_size=1000;
@@ -70,6 +72,27 @@ long long Vocab::GetVocabWordCn(long long i) const {
 
 void Vocab::SetMincount(int x){
     min_count=x;
+}
+
+void Vocab::SetPosf(int x){
+    posf=x;
+}
+
+void Vocab::SetRelf(int x){
+    relf=x;
+    if(relf!=0 && tree_degree!=0){
+        printf("when relf !=0,tree_degree must be 0\n");
+        exit(1);
+    }
+}
+
+
+int Vocab::GetPosf() const {
+    return posf;
+}
+
+int Vocab::GetRelf() const {
+    return relf;
 }
 
 void Vocab::SetTreeDegree(int x) {
@@ -220,6 +243,7 @@ long long Vocab::GetTrainWords() const {
 
 int Vocab::ReadWordFromTrainFile(char *word1,char *word2,FILE *fin) {
     char temp[MAX_STRING];
+    char rel[MAX_STRING];
     while (true) {
         if (feof(fin))
             return 0;
@@ -240,6 +264,7 @@ int Vocab::ReadWordFromTrainFile(char *word1,char *word2,FILE *fin) {
 
             p = strsep(&q, d);// dep_relationship
             assert(strlen(p) > 0);
+            strcpy(rel,p);
 
             p = strsep(&q, d);// parent
             assert(strlen(p) > 0);
@@ -264,10 +289,27 @@ int Vocab::ReadWordFromTrainFile(char *word1,char *word2,FILE *fin) {
                     return 0;
                 }
             }
-        }
 
-        if (i == strlen(temp) - 1)// assert is an end of tree
-            assert(temp[i] == '\n');
+            if(posf==0){
+                for(int k=0;k<strlen(word1);k++)
+                    if(word1[k]=='/') {
+                        word1[k] = 0;
+                        break;
+                    }
+                for(int k=0;k<strlen(word2);k++)
+                    if(word2[k]=='/') {
+                        word2[k] = 0;
+                        break;
+                    }
+            }
+
+            if(relf!=0) {
+                int templen=strlen(word2);
+                word2[templen]='/';
+                word2[templen+1]=0;
+                strcat(word2, rel);
+            }
+        }
 
     }
 }

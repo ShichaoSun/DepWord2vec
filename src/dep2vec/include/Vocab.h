@@ -25,8 +25,12 @@ public:
     void SaveVocab(const char *save_vocab_file);
     void ReadVocab(const char *read_vocab_file);
     void SetMincount(int x);
+    void SetPosf(int x);
+    void SetRelf(int x);
     void SetTreeDegree(int x);
 
+    int GetPosf() const;
+    int GetRelf() const;
     long long GetVocabSize() const;
     long long GetVocabWordCn(long long i) const;
     long long GetTotalWords() const;
@@ -44,6 +48,8 @@ private:
     long long vocab_max_size;
     const int vocab_hash_size;// Maximum 30 * 0.7 = 21M words in the vocabulary
     struct vocab_word *vocab;
+    int posf;
+    int relf;
     int min_reduce;
     int min_count;
     int tree_degree;
