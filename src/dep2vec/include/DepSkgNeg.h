@@ -41,8 +41,11 @@ private:
     real sample;
     real starting_alpha;
     real alpha;
-    real *syn0;
-    real *syn1neg;
+    real *syn0Word;
+    real *syn1Word;
+    real *syn1WordPos;
+    real *syn1WordPosRel;
+    real *syn1RelWordPos;
     real *expTable;
     int *table;
     int debug_mode;

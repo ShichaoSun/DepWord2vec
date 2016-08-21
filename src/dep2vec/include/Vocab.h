@@ -13,52 +13,95 @@
 
 #define MAX_STRING 1024    //the max length of word
 
-struct vocab_word{
-    char *word;
+struct vocab_cell{
+    char *cell;
     long long cn;
 };
 
 class Vocab {
 public:
     Vocab();
+
     void LearnVocabFromTrainFile(const char *train_file);
+
     void SaveVocab(const char *save_vocab_file);
     void ReadVocab(const char *read_vocab_file);
-    void SetMincount(int x);
-    void SetPosf(int x);
-    void SetRelf(int x);
-    void SetTreeDegree(int x);
 
-    int GetPosf() const;
-    int GetRelf() const;
-    long long GetVocabSize() const;
-    long long GetVocabWordCn(long long i) const;
-    long long GetTotalWords() const;
-    long long GetTrainWords() const;
-    long long GetTrainTrees() const;
-    char * GetVocabWord(long long a) const ;
-    int SearchVocab(const char *word) const;// Returns position of a word in the vocabulary; if the word is not found, returns -1
+    void SetMincount(int x);
+
+    unsigned int GetVocabWordSize() const;//Get vocab size
+    unsigned int GetVocabWordPosSize() const;
+    unsigned int GetVocabWordPosRelSize() const;
+    unsigned int GetVocabRelWordPosSize() const;
+
+    long long GetVocabWordCn(unsigned int i) const;// Get vocab cell count
+    long long GetVocabWordPosCn(unsigned int i) const;
+    long long GetVocabWordPosRelCn(unsigned int i) const;
+    long long GetVocabRelWordPosCn(unsigned int i) const;
+
+    unsigned int GetTotalWords() const;
+    unsigned int GetTrainWords() const;
+    unsigned int GetTrainTrees() const;
+
+    char *GetVocabWord(unsigned int a) const;//Get vocab cell value
+    char *GetVocabWordPos(unsigned int a) const;
+    char *GetVocabWordPosRel(unsigned int a) const;
+    char *GetVocabRelWordPos(unsigned int a) const;
+
+    int SearchVocabWord(const char *word) const;// Returns position of a word in the vocabulary; if the word is not found, returns -1
+    int SearchVocabWordPos(const char *wordPos) const;
+    int SearchVocabWordPosRel(const char *wordPosRel) const;
+    int SearchVocabRelWordPos(const char *relWordPos) const;
 
     ~Vocab();
 private:
-    long long total_words;
-    long long train_words;
-    long long train_trees;
-    long long vocab_size;
-    long long vocab_max_size;
-    const int vocab_hash_size;// Maximum 30 * 0.7 = 21M words in the vocabulary
-    struct vocab_word *vocab;
-    int posf;
-    int relf;
+    unsigned int total_words;
+    unsigned int train_words;
+    unsigned int train_trees;
+
+    unsigned int vocabWord_size;
+    unsigned int vocabWordPos_size;
+    unsigned int vocabWordPosRel_size;
+    unsigned int vocabRelWordPos_size;
+
+    unsigned int vocabWord_max_size;
+    unsigned int vocabWordPos_max_size;
+    unsigned int vocabWordPosRel_max_size;
+    unsigned int vocabRelWordPos_max_size;
+
+    const unsigned int vocab_hash_size;// Maximum 30 * 0.7 = 21M words in the vocabulary
+
+    vocab_cell *vocabWord;
+    vocab_cell *vocabWordPos;
+    vocab_cell *vocabWordPosRel;
+    vocab_cell *vocabRelWordPos;
+
     int min_reduce;
     int min_count;
-    int tree_degree;
-    int *vocab_hash;
-    int ReadWordFromTrainFile(char *word1,char *word2,FILE *fin);
+
+    int *vocabWord_hash;
+    int *vocabWordPos_hash;
+    int *vocabWordPosRel_hash;
+    int *vocabRelWordPos_hash;
+
     int GetWordHash(const char *word) const;// Returns hash value of a word
+    int GetWordPosHash(const char *wordPos) const;
+    int GetWordPosRelHash(const char *wordPosRel) const;
+    int GetRelWordPosHash(const char *relWordPosRel) const;
+
     int AddWordToVocab(char *word);// Adds a word to the vocabulary
-    void SortVocab();
-    void ReduceVocab();
-    void ClearVocab();
+    int AddWordPosToVocab(char *wordPos);
+    int AddWordPosRelToVocab(char *wordPosRel);
+    int AddRelWordPosToVocab(char *relWordPos);
+
+    void SortVocabWord();
+    void SortVocabWordPos();
+    void SortVocabWordPosRel();
+    void SortVocabRelWordPos();
+
+    void ReduceVocabWord();
+    void ReduceVocabWordPos();
+    void ReduceVocabWordPosRel();
+    void ReduceVocabRelWordPos();
 };
 #endif //DEPWORD2VEC_VOCAB_H

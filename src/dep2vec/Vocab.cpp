@@ -5,157 +5,409 @@
 #include "Vocab.h"
 
 Vocab::Vocab():vocab_hash_size(30000000){
-    tree_degree=0;
+    vocabWord_max_size=1000;
+    vocabWordPos_max_size=1000;
+    vocabWordPosRel_max_size=1000;
+    vocabRelWordPos_max_size=1000;
+
     train_words=0;
-    posf=1;
-    relf=0;
-    train_trees=-2;//two empty line at the begin of file
+    train_trees=0;
     total_words=0;
-    vocab_max_size=1000;
+
     min_count=5;
     min_reduce=1;
-    vocab_size=0;
-    vocab=(vocab_word*)calloc(vocab_max_size,sizeof(vocab_word));
-    vocab_hash=(int*)calloc(vocab_hash_size,sizeof(int));
+
+    vocabWord_size=0;
+    vocabWordPos_size=0;
+    vocabWordPosRel_size=0;
+    vocabRelWordPos_size=0;
+
+    vocabWord=(vocab_cell*)calloc(vocabWord_max_size,sizeof(vocab_cell));
+    vocabWordPos=(vocab_cell*)calloc(vocabWordPos_max_size,sizeof(vocab_cell));
+    vocabWordPosRel=(vocab_cell*)calloc(vocabWordPosRel_max_size,sizeof(vocab_cell));
+    vocabRelWordPos=(vocab_cell*)calloc(vocabRelWordPos_max_size,sizeof(vocab_cell));
+
+    vocabWord_hash=(int*)calloc(vocab_hash_size,sizeof(int));
+    vocabWordPos_hash=(int*)calloc(vocab_hash_size,sizeof(int));
+    vocabWordPosRel_hash=(int*)calloc(vocab_hash_size,sizeof(int));
+    vocabRelWordPos_hash=(int*)calloc(vocab_hash_size,sizeof(int));
+
 }
 
 int Vocab::GetWordHash(const char *word) const{// Returns hash value of a word
-    unsigned long long a, hash = 0;
+    int a, hash = 0;
     for (a = 0; a < strlen(word); a++) hash = hash * 257 + word[a];
     hash = hash % vocab_hash_size;
     return hash;
 }
 
-int Vocab::SearchVocab(const char *word) const{// Returns position of a word in the vocabulary; if the word is not found, returns -1
-    unsigned int hash = GetWordHash(word);
+int Vocab::GetWordPosHash(const char *wordPos) const {// Returns hash value of a word
+    int a, hash = 0;
+    for (a = 0; a < strlen(wordPos); a++) hash = hash * 257 + wordPos[a];
+    hash = hash % vocab_hash_size;
+    return hash;
+}
+
+int Vocab::GetWordPosRelHash(const char *wordPosRel) const {
+    int a, hash = 0;
+    for (a = 0; a < strlen(wordPosRel); a++) hash = hash * 257 + wordPosRel[a];
+    hash = hash % vocab_hash_size;
+    return hash;
+}
+
+int Vocab::GetRelWordPosHash(const char *relWordPosRel) const {
+    int a, hash = 0;
+    for (a = 0; a < strlen(relWordPosRel); a++) hash = hash * 257 + relWordPosRel[a];
+    hash = hash % vocab_hash_size;
+    return hash;
+}
+
+int Vocab::SearchVocabWord(const char *word) const {// Returns position of a word in the vocabulary; if the word is not found, returns -1
+    int hash = GetWordHash(word);
     while (1) {
-        if (vocab_hash[hash] == -1) return -1;
-        if (!strcmp(word,vocab[vocab_hash[hash]].word)) return vocab_hash[hash];
+        if (vocabWord_hash[hash] == -1) return -1;
+        if (!strcmp(word,vocabWord[vocabWord_hash[hash]].cell)) return vocabWord_hash[hash];
         hash = (hash + 1) % vocab_hash_size;
     }
 }
 
-char * Vocab::GetVocabWord(long long a) const {
-    return vocab[a].word;
+int Vocab::SearchVocabWordPos(const char *wordPos) const {
+    int hash = GetWordPosHash(wordPos);
+    while (1) {
+        if (vocabWordPos_hash[hash] == -1) return -1;
+        if (!strcmp(wordPos,vocabWordPos[vocabWordPos_hash[hash]].cell)) return vocabWordPos_hash[hash];
+        hash = (hash + 1) % vocab_hash_size;
+    }
+}
+
+int Vocab::SearchVocabWordPosRel(const char *wordPosRel) const {
+    int hash = GetWordPosRelHash(wordPosRel);
+    while (1) {
+        if (vocabWordPosRel_hash[hash] == -1) return -1;
+        if (!strcmp(wordPosRel,vocabWordPosRel[vocabWordPosRel_hash[hash]].cell)) return vocabWordPosRel_hash[hash];
+        hash = (hash + 1) % vocab_hash_size;
+    }
+}
+
+int Vocab::SearchVocabRelWordPos(const char *relWordPos) const {
+    int hash = GetRelWordPosHash(relWordPos);
+    while (1) {
+        if (vocabRelWordPos_hash[hash] == -1) return -1;
+        if (!strcmp(relWordPos,vocabRelWordPos[vocabRelWordPos_hash[hash]].cell)) return vocabRelWordPos_hash[hash];
+        hash = (hash + 1) % vocab_hash_size;
+    }
+}
+
+char* Vocab::GetVocabWord(unsigned int a) const {
+    return vocabWord[a].cell;
+}
+
+char* Vocab::GetVocabWordPos(unsigned int a) const {
+    return vocabWordPos[a].cell;
+}
+
+char* Vocab::GetVocabWordPosRel(unsigned int a) const {
+    return vocabWordPosRel[a].cell;
+}
+
+char* Vocab::GetVocabRelWordPos(unsigned int a) const {
+    return vocabRelWordPos[a].cell;
 }
 
 int Vocab::AddWordToVocab(char *word) {// Adds a word to the vocabulary
-    unsigned int hash, length = strlen(word) + 1;
+    unsigned long length = strlen(word) + 1;
+    int hash;
     if (length > MAX_STRING) length = MAX_STRING;
 
-    vocab[vocab_size].word = (char *)calloc(length, sizeof(char));
-    strcpy(vocab[vocab_size].word, word);
-    vocab[vocab_size].cn = 1;
-    vocab_size++;
+    vocabWord[vocabWord_size].cell = (char *)calloc(length, sizeof(char));
+    strcpy(vocabWord[vocabWord_size].cell, word);
+    vocabWord[vocabWord_size].cn = 1;
+    vocabWord_size++;
     // Reallocate memory if needed
-    if (vocab_size + 2 >= vocab_max_size) {
-        vocab_max_size += 1000;
-        vocab = (vocab_word*)realloc(vocab, vocab_max_size * sizeof(vocab_word));
+    if (vocabWord_size + 2 >= vocabWord_max_size) {
+        vocabWord_max_size += 1000;
+        vocabWord = (vocab_cell*)realloc(vocabWord, vocabWord_max_size * sizeof(vocab_cell));
     }
     hash = GetWordHash(word);
-    while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
-    vocab_hash[hash] = vocab_size - 1;
-    return vocab_size - 1;
+    while (vocabWord_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
+    vocabWord_hash[hash] = vocabWord_size - 1;
+    return vocabWord_size - 1;
+}
+
+int Vocab::AddWordPosToVocab(char *wordPos){
+    unsigned long length = strlen(wordPos) + 1;
+    int hash;
+    if (length > MAX_STRING) length = MAX_STRING;
+
+    vocabWordPos[vocabWordPos_size].cell = (char *)calloc(length, sizeof(char));
+    strcpy(vocabWordPos[vocabWordPos_size].cell, wordPos);
+    vocabWordPos[vocabWordPos_size].cn = 1;
+    vocabWordPos_size++;
+    // Reallocate memory if needed
+    if (vocabWordPos_size + 2 >= vocabWordPos_max_size) {
+        vocabWordPos_max_size += 1000;
+        vocabWordPos = (vocab_cell*)realloc(vocabWordPos, vocabWordPos_max_size * sizeof(vocab_cell));
+    }
+    hash = GetWordHash(wordPos);
+    while (vocabWordPos_hash[hash] != -1) hash = (hash + 1) % vocabWordPos_size;
+    vocabWordPos_hash[hash] = vocabWordPos_size - 1;
+    return vocabWordPos_size - 1;
+}
+
+int Vocab::AddWordPosRelToVocab(char *wordPosRel){
+    unsigned long length = strlen(wordPosRel) + 1;
+    int hash;
+    if (length > MAX_STRING) length = MAX_STRING;
+
+    vocabWordPosRel[vocabWordPosRel_size].cell = (char *)calloc(length, sizeof(char));
+    strcpy(vocabWordPosRel[vocabWordPosRel_size].cell, wordPosRel);
+    vocabWordPosRel[vocabWordPosRel_size].cn = 1;
+    vocabWordPosRel_size++;
+    // Reallocate memory if needed
+    if (vocabWordPosRel_size + 2 >= vocabWordPosRel_max_size) {
+        vocabWordPosRel_max_size += 1000;
+        vocabWordPosRel = (vocab_cell*)realloc(vocabWordPosRel, vocabWordPosRel_max_size * sizeof(vocab_cell));
+    }
+    hash = GetWordHash(wordPosRel);
+    while (vocabWordPosRel_hash[hash] != -1) hash = (hash + 1) % vocabWordPosRel_size;
+    vocabWordPosRel_hash[hash] = vocabWordPosRel_size - 1;
+    return vocabWordPosRel_size - 1;
+}
+
+int Vocab::AddRelWordPosToVocab(char *relWordPos){
+    unsigned long length = strlen(relWordPos) + 1;
+    int hash;
+    if (length > MAX_STRING) length = MAX_STRING;
+
+    vocabRelWordPos[vocabRelWordPos_size].cell = (char *)calloc(length, sizeof(char));
+    strcpy(vocabRelWordPos[vocabRelWordPos_size].cell, relWordPos);
+    vocabRelWordPos[vocabRelWordPos_size].cn = 1;
+    vocabRelWordPos_size++;
+    // Reallocate memory if needed
+    if (vocabRelWordPos_size + 2 >= vocabRelWordPos_max_size) {
+        vocabRelWordPos_max_size += 1000;
+        vocabRelWordPos = (vocab_cell*)realloc(vocabRelWordPos, vocabRelWordPos_max_size * sizeof(vocab_cell));
+    }
+    hash = GetWordHash(relWordPos);
+    while (vocabRelWordPos_hash[hash] != -1) hash = (hash + 1) % vocabRelWordPos_size;
+    vocabRelWordPos_hash[hash] = vocabRelWordPos_size - 1;
+    return vocabRelWordPos_size - 1;
 }
 
 static int VocabCompare(const void*a,const void *b){
-    return (((vocab_word*)b)->cn - ((vocab_word*)a)->cn);
+    return (int)(((vocab_cell*)b)->cn - ((vocab_cell*)a)->cn);
 }
 
-long long Vocab::GetVocabSize() const{
-    return vocab_size;
+unsigned int Vocab::GetVocabWordSize() const{
+    return vocabWord_size;
 }
 
-long long Vocab::GetVocabWordCn(long long i) const {
-    return vocab[i].cn;
+unsigned int Vocab::GetVocabWordPosSize() const{
+    return vocabWordPos_size;
+}
+
+unsigned int Vocab::GetVocabWordPosRelSize() const{
+    return vocabWordPosRel_size;
+}
+
+unsigned int Vocab::GetVocabRelWordPosSize() const{
+    return vocabRelWordPos_size;
+}
+
+long long Vocab::GetVocabWordCn(unsigned int i) const {
+    return vocabWord[i].cn;
+}
+
+long long Vocab::GetVocabWordPosCn(unsigned int i) const {
+    return vocabWordPos[i].cn;
+}
+
+long long Vocab::GetVocabWordPosRelCn(unsigned int i) const {
+    return vocabWordPosRel[i].cn;
+}
+
+long long Vocab::GetVocabRelWordPosCn(unsigned int i) const {
+    return vocabRelWordPos[i].cn;
 }
 
 void Vocab::SetMincount(int x){
     min_count=x;
 }
 
-void Vocab::SetPosf(int x){
-    posf=x;
-}
-
-void Vocab::SetRelf(int x){
-    relf=x;
-    if(relf!=0 && tree_degree!=0){
-        printf("when relf !=0,tree_degree must be 0\n");
-        exit(1);
-    }
-}
-
-
-int Vocab::GetPosf() const {
-    return posf;
-}
-
-int Vocab::GetRelf() const {
-    return relf;
-}
-
-void Vocab::SetTreeDegree(int x) {
-    tree_degree=x;
-}
-
-void Vocab::ClearVocab(){
-    int a;
-
-    for (a = 0; a < vocab_size; a++) {
-        if (vocab[a].word != NULL) {
-            free(vocab[a].word);
-        }
-
-    }
-    free(vocab[vocab_size].word);
-    free(vocab);
-}
-
-void Vocab::SortVocab(){
+void Vocab::SortVocabWord(){
     int a, size;
-    unsigned int hash;
+    int hash;
     // Sort the vocabulary and keep </s> at the first position
-    qsort(&vocab[0], vocab_size, sizeof(vocab_word), VocabCompare);
-    for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
-    size = vocab_size;
+    qsort(&vocabWord[0], vocabWord_size, sizeof(vocab_cell), VocabCompare);
+    for (a = 0; a < vocab_hash_size; a++) vocabWord_hash[a] = -1;
+    size = vocabWord_size;
     train_words = 0;
     for (a = 0; a < size; a++) {
         // Words occuring less than min_count times will be discarded from the vocab
-        if (vocab[a].cn < min_count) {
-            vocab_size--;
-            free(vocab[a].word);
-            vocab[a].word = NULL;
+        if (vocabWord[a].cn < min_count) {
+            vocabWord_size--;
+            free(vocabWord[a].cell);
+            vocabWord[a].cell = NULL;
         } else {
             // Hash will be re-computed, as after the sorting it is not actual
-            hash=GetWordHash(vocab[a].word);
-            while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
-            vocab_hash[hash] = a;
-            train_words +=vocab[a].cn;
+            hash=GetWordHash(vocabWord[a].cell);
+            while (vocabWord_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
+            vocabWord_hash[hash] = a;
+            train_words +=vocabWord[a].cn;
         }
     }
-    vocab = (vocab_word*)realloc(vocab, (vocab_size + 1) * sizeof(vocab_word));
-    // Allocate memory for the binary tree construction
-
+    vocabWord = (vocab_cell*)realloc(vocabWord, (vocabWord_size + 1) * sizeof(vocab_cell));
 }
 
-void Vocab::ReduceVocab() {
-    int a, b = 0;
-    unsigned int hash;
-    for (a = 0; a < vocab_size; a++)
-        if (vocab[a].cn > min_reduce) {
-            vocab[b].cn = vocab[a].cn;
-            vocab[b].word = vocab[a].word;
+void Vocab::SortVocabWordPos(){
+    int a, size;
+    int hash;
+    // Sort the vocabulary and keep </s> at the first position
+    qsort(&vocabWordPos[0], vocabWordPos_size, sizeof(vocab_cell), VocabCompare);
+    for (a = 0; a < vocab_hash_size; a++) vocabWordPos_hash[a] = -1;
+    size = vocabWordPos_size;
+    for (a = 0; a < size; a++) {
+        // Words occuring less than min_count times will be discarded from the vocab
+        if (vocabWordPos[a].cn < min_count) {
+            vocabWordPos_size--;
+            free(vocabWordPos[a].cell);
+            vocabWordPos[a].cell = NULL;
+        } else {
+            // Hash will be re-computed, as after the sorting it is not actual
+            hash=GetWordHash(vocabWordPos[a].cell);
+            while (vocabWordPos_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
+            vocabWordPos_hash[hash] = a;
+        }
+    }
+    vocabWordPos = (vocab_cell*)realloc(vocabWordPos, (vocabWordPos_size + 1) * sizeof(vocab_cell));
+}
+
+void Vocab::SortVocabWordPosRel(){
+    int a, size;
+    int hash;
+    // Sort the vocabulary and keep </s> at the first position
+    qsort(&vocabWordPosRel[0], vocabWordPosRel_size, sizeof(vocab_cell), VocabCompare);
+    for (a = 0; a < vocab_hash_size; a++) vocabWordPosRel_hash[a] = -1;
+    size = vocabWordPosRel_size;
+    for (a = 0; a < size; a++) {
+        // Words occuring less than min_count times will be discarded from the vocab
+        if (vocabWordPosRel[a].cn < min_count) {
+            vocabWordPosRel_size--;
+            free(vocabWordPosRel[a].cell);
+            vocabWordPosRel[a].cell = NULL;
+        } else {
+            // Hash will be re-computed, as after the sorting it is not actual
+            hash=GetWordHash(vocabWordPosRel[a].cell);
+            while (vocabWordPosRel_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
+            vocabWordPosRel_hash[hash] = a;
+        }
+    }
+    vocabWordPosRel = (vocab_cell*)realloc(vocabWordPosRel, (vocabWordPosRel_size + 1) * sizeof(vocab_cell));
+}
+
+void Vocab::SortVocabRelWordPos(){
+    int a, size;
+    int hash;
+    // Sort the vocabulary and keep </s> at the first position
+    qsort(&vocabRelWordPos[0], vocabRelWordPos_size, sizeof(vocab_cell), VocabCompare);
+    for (a = 0; a < vocab_hash_size; a++) vocabRelWordPos_hash[a] = -1;
+    size = vocabRelWordPos_size;
+    for (a = 0; a < size; a++) {
+        // Words occuring less than min_count times will be discarded from the vocab
+        if (vocabRelWordPos[a].cn < min_count) {
+            vocabRelWordPos_size--;
+            free(vocabRelWordPos[a].cell);
+            vocabRelWordPos[a].cell = NULL;
+        } else {
+            // Hash will be re-computed, as after the sorting it is not actual
+            hash=GetWordHash(vocabRelWordPos[a].cell);
+            while (vocabRelWordPos_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
+            vocabRelWordPos_hash[hash] = a;
+        }
+    }
+    vocabRelWordPos = (vocab_cell*)realloc(vocabRelWordPos, (vocabRelWordPos_size + 1) * sizeof(vocab_cell));
+}
+
+void Vocab::ReduceVocabWord(){
+    int a,hash;
+    unsigned int b = 0;
+    for (a = 0; a < vocabWord_size; a++)
+        if (vocabWord[a].cn > min_reduce) {
+            vocabWord[b].cn = vocabWord[a].cn;
+            vocabWord[b].cell = vocabWord[a].cell;
             b++;
         } else
-            free(vocab[a].word);
-    vocab_size = b;
-    for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
-    for (a = 0; a < vocab_size; a++) {
+            free(vocabWord[a].cell);
+    vocabWord_size = b;
+    for (a = 0; a < vocab_hash_size; a++) vocabWord_hash[a] = -1;
+    for (a = 0; a < vocabWord_size; a++) {
         // Hash will be re-computed, as it is not actual
-        hash = GetWordHash(vocab[a].word);
-        while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
-        vocab_hash[hash] = a;
+        hash = GetWordHash(vocabWord[a].cell);
+        while (vocabWord_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
+        vocabWord_hash[hash] = a;
+    }
+    min_reduce++;
+}
+
+void Vocab::ReduceVocabWordPos(){
+    int a,hash;
+    unsigned int b = 0;
+    for (a = 0; a < vocabWordPos_size; a++)
+        if (vocabWordPos[a].cn > min_reduce) {
+            vocabWordPos[b].cn = vocabWordPos[a].cn;
+            vocabWordPos[b].cell = vocabWordPos[a].cell;
+            b++;
+        } else
+            free(vocabWordPos[a].cell);
+    vocabWordPos_size = b;
+    for (a = 0; a < vocab_hash_size; a++) vocabWordPos_hash[a] = -1;
+    for (a = 0; a < vocabWordPos_size; a++) {
+        // Hash will be re-computed, as it is not actual
+        hash = GetWordHash(vocabWordPos[a].cell);
+        while (vocabWordPos_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
+        vocabWordPos_hash[hash] = a;
+    }
+    min_reduce++;
+}
+
+void Vocab::ReduceVocabWordPosRel(){
+    int a,hash;
+    unsigned int b = 0;
+    for (a = 0; a < vocabWordPosRel_size; a++)
+        if (vocabWordPosRel[a].cn > min_reduce) {
+            vocabWordPosRel[b].cn = vocabWordPosRel[a].cn;
+            vocabWordPosRel[b].cell = vocabWordPosRel[a].cell;
+            b++;
+        } else
+            free(vocabWordPosRel[a].cell);
+    vocabWordPosRel_size = b;
+    for (a = 0; a < vocab_hash_size; a++) vocabWordPosRel_hash[a] = -1;
+    for (a = 0; a < vocabWordPosRel_size; a++) {
+        // Hash will be re-computed, as it is not actual
+        hash = GetWordHash(vocabWordPosRel[a].cell);
+        while (vocabWordPosRel_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
+        vocabWordPosRel_hash[hash] = a;
+    }
+    min_reduce++;
+}
+
+void Vocab::ReduceVocabRelWordPos(){
+    int a,hash;
+    unsigned int b = 0;
+    for (a = 0; a < vocabRelWordPos_size; a++)
+        if (vocabRelWordPos[a].cn > min_reduce) {
+            vocabRelWordPos[b].cn = vocabRelWordPos[a].cn;
+            vocabRelWordPos[b].cell = vocabRelWordPos[a].cell;
+            b++;
+        } else
+            free(vocabRelWordPos[a].cell);
+    vocabRelWordPos_size = b;
+    for (a = 0; a < vocab_hash_size; a++) vocabRelWordPos_hash[a] = -1;
+    for (a = 0; a < vocabRelWordPos_size; a++) {
+        // Hash will be re-computed, as it is not actual
+        hash = GetWordHash(vocabRelWordPos[a].cell);
+        while (vocabRelWordPos_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
+        vocabRelWordPos_hash[hash] = a;
     }
     min_reduce++;
 }
@@ -256,6 +508,7 @@ int Vocab::ReadWordFromTrainFile(char *word1,char *word2,FILE *fin) {
                 break;
         }
 
+        bool flag= false;
         if (i < strlen(temp) - 1) {// a line of words
             assert(strlen(temp) > 4);// can be slip 4 string
             const char *d = " ";
@@ -286,31 +539,12 @@ int Vocab::ReadWordFromTrainFile(char *word1,char *word2,FILE *fin) {
             for (int k = 0; k < strlen(p); k++) {
                 if (isalpha(p[k])) {//not punct
                     strcpy(word2, p);
-                    return 0;
+                    flag= true;
                 }
             }
 
-            if(posf==0){
-                for(int k=0;k<strlen(word1);k++)
-                    if(word1[k]=='/') {
-                        word1[k] = 0;
-                        break;
-                    }
-                for(int k=0;k<strlen(word2);k++)
-                    if(word2[k]=='/') {
-                        word2[k] = 0;
-                        break;
-                    }
-            }
-
-            if(relf!=0) {
-                int templen=strlen(word2);
-                word2[templen]='/';
-                word2[templen+1]=0;
-                strcat(word2, rel);
-            }
         }
-
+        return 0;
     }
 }
 
@@ -366,6 +600,17 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
 }
 
 Vocab::~Vocab() {
+    int a;
+
+    for (a = 0; a < vocab_size; a++) {
+        if (vocab[a].word != NULL) {
+            free(vocab[a].word);
+        }
+
+    }
+    free(vocab[vocab_size].word);
+    free(vocab);
+}
     ClearVocab();
     free(vocab_hash);
 }

@@ -46,7 +46,7 @@ DepSkgNeg::DepSkgNeg(const Vocab& v):table_size(1e8),vocab(v){//initialize defau
         exit(1);
     }
 
-    posix_memalign((void **)&syn1neg, 128,  (long long)vocab_size * layer1_size * sizeof(real));
+    posix_memalign((void **)&syn1neg, 128,  vocab_size * layer1_size * sizeof(real));
 
     if (syn1neg == NULL) {
         printf("Memory allocation failed\n");
