@@ -32,6 +32,10 @@ Vocab::Vocab():vocab_hash_size(30000000){
     vocabWordPosRel_hash=(int*)calloc(vocab_hash_size,sizeof(int));
     vocabRelWordPos_hash=(int*)calloc(vocab_hash_size,sizeof(int));
 
+    for (unsigned int a = 0; a < vocab_hash_size; a++) vocabWord_hash[a] = -1;
+    for (unsigned int a = 0; a < vocab_hash_size; a++) vocabWordPos_hash[a] = -1;
+    for (unsigned int a = 0; a < vocab_hash_size; a++) vocabWordPosRel_hash[a] = -1;
+    for (unsigned int a = 0; a < vocab_hash_size; a++) vocabRelWordPos_hash[a] = -1;
 }
 
 int Vocab::GetWordHash(const char *word) const{// Returns hash value of a word
@@ -413,83 +417,187 @@ void Vocab::ReduceVocabRelWordPos(){
 }
 
 void Vocab::SaveVocab(const char *save_vocab_file) {
-    long long i;
+    unsigned int i;
     FILE *fo = fopen(save_vocab_file, "wb");
-    fprintf(fo, "train_trees %lld\n",train_trees);
-    fprintf(fo, "total_words %lld\n",total_words);
-    for (i = 0; i < vocab_size; i++) fprintf(fo, "%s %lld\n", vocab[i].word, vocab[i].cn);
+    fprintf(fo, "train_trees %u\n",train_trees);
+    fprintf(fo, "total_words %u\n",total_words);
+    fprintf(fo,"Word %u\n",vocabWord_size);
+    for (i = 0; i < vocabWord_size; i++) fprintf(fo, "%s %lld\n", vocabWord[i].cell, vocabWord[i].cn);
+    fprintf(fo,"WordPos %u\n",vocabWordPos_size);
+    for (i = 0; i < vocabWordPos_size; i++) fprintf(fo, "%s %lld\n", vocabWordPos[i].cell, vocabWordPos[i].cn);
+    fprintf(fo,"WordPosRel %u\n",vocabWordPosRel_size);
+    for (i = 0; i < vocabWordPosRel_size; i++) fprintf(fo, "%s %lld\n", vocabWordPosRel[i].cell, vocabWordPosRel[i].cn);
+    fprintf(fo,"RelWordPos %u\n",vocabRelWordPos_size);
+    for (i = 0; i < vocabRelWordPos_size; i++) fprintf(fo, "%s %lld\n", vocabRelWordPos[i].cell, vocabRelWordPos[i].cn);
     fclose(fo);
 }
 
 
 void Vocab::ReadVocab(const char *read_vocab_file) {
-    long long a;
+    unsigned int t_vocabWord_size,t_vocabWordPos_size,t_vocabWordPosRel_size,t_vocabRelWordPos_size;
     char line[MAX_STRING];
     FILE *fin = fopen(read_vocab_file, "rb");
     if (fin == NULL) {
         printf("Vocabulary file not found\n");
         exit(1);
     }
-    for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
-    vocab_size = 0;
 
     int i=0;
     char ch='\n';
     while(ch!=' '){
-        ch = fgetc(fin);
+        ch = (char)fgetc(fin);
         line[i]=ch;
         i++;
         assert(i<MAX_STRING);
     }
     line[i-1]=0;
     assert(!strcmp(line,"train_trees"));
-    fscanf(fin, "%lld%c",&train_trees, &ch);
+    fscanf(fin, "%u%c",&train_trees, &ch);
     assert(ch=='\n');
 
     i=0;
     while(ch!=' '){
-        ch = fgetc(fin);
+        ch = (char)fgetc(fin);
         line[i]=ch;
         i++;
         assert(i<MAX_STRING);
     }
     line[i-1]=0;
     assert(!strcmp(line,"total_words"));
-    fscanf(fin, "%lld%c", &total_words, &ch);
+    fscanf(fin, "%u%c", &total_words, &ch);
     assert(ch=='\n');
 
-    while (true) {
+    i=0;
+    while(ch!=' '){
+        ch = (char)fgetc(fin);
+        line[i]=ch;
+        i++;
+        assert(i<MAX_STRING);
+    }
+    line[i-1]=0;
+    assert(!strcmp(line,"Word"));
+    fscanf(fin, "%u%c", &t_vocabWord_size, &ch);
+    assert(ch=='\n');
+
+    for (unsigned int k=0;k<t_vocabWord_size;k++) {
         i=0;
-        while(ch!=' ' && !feof(fin)){
-            ch = fgetc(fin);
+        while(ch!=' '){
+            ch =(char)fgetc(fin);
             line[i]=ch;
             i++;
         }
-        if(feof(fin))
-            break;
         assert(i<MAX_STRING);
         line[i-1]=0;
-        a=AddWordToVocab(line);
-        fscanf(fin, "%lld%c", &vocab[a].cn, &ch);
+        long long a=AddWordToVocab(line);
+        fscanf(fin, "%lld%c", &vocabWord[a].cn, &ch);
         assert(ch=='\n');
     }
-    SortVocab();
-    printf("Vocab size: %lld\n", vocab_size);
-    printf("Trees in train file: %lld\n", train_trees);
-    printf("Total Words in train file: %lld\n",total_words);
+
+    SortVocabWord();
+
+    i=0;
+    while(ch!=' '){
+        ch = (char)fgetc(fin);
+        line[i]=ch;
+        i++;
+        assert(i<MAX_STRING);
+    }
+    line[i-1]=0;
+    assert(!strcmp(line,"WordPos"));
+    fscanf(fin, "%u%c", &t_vocabWordPos_size, &ch);
+    assert(ch=='\n');
+
+    for (unsigned int k=0;k<t_vocabWordPos_size;k++) {
+        i=0;
+        while(ch!=' '){
+            ch =(char)fgetc(fin);
+            line[i]=ch;
+            i++;
+        }
+        assert(i<MAX_STRING);
+        line[i-1]=0;
+        long long a=AddWordPosToVocab(line);
+        fscanf(fin, "%lld%c", &vocabWordPos[a].cn, &ch);
+        assert(ch=='\n');
+    }
+
+    SortVocabWordPos();
+
+    i=0;
+    while(ch!=' '){
+        ch = (char)fgetc(fin);
+        line[i]=ch;
+        i++;
+        assert(i<MAX_STRING);
+    }
+    line[i-1]=0;
+    assert(!strcmp(line,"WordPosRel"));
+    fscanf(fin, "%u%c", &t_vocabWordPosRel_size, &ch);
+    assert(ch=='\n');
+
+    for (unsigned int k=0;k<t_vocabWordPosRel_size;k++) {
+        i=0;
+        while(ch!=' '){
+            ch =(char)fgetc(fin);
+            line[i]=ch;
+            i++;
+        }
+        assert(i<MAX_STRING);
+        line[i-1]=0;
+        long long a=AddWordPosRelToVocab(line);
+        fscanf(fin, "%lld%c", &vocabWordPosRel[a].cn, &ch);
+        assert(ch=='\n');
+    }
+
+    SortVocabWordPosRel();
+
+    i=0;
+    while(ch!=' '){
+        ch = (char)fgetc(fin);
+        line[i]=ch;
+        i++;
+        assert(i<MAX_STRING);
+    }
+    line[i-1]=0;
+    assert(!strcmp(line,"RelWordPos"));
+    fscanf(fin, "%u%c", &t_vocabRelWordPos_size, &ch);
+    assert(ch=='\n');
+
+    for (unsigned int k=0;k<t_vocabRelWordPos_size;k++) {
+        i=0;
+        while(ch!=' '){
+            ch =(char)fgetc(fin);
+            line[i]=ch;
+            i++;
+        }
+        assert(i<MAX_STRING);
+        line[i-1]=0;
+        long long a=AddRelWordPosToVocab(line);
+        fscanf(fin, "%lld%c", &vocabRelWordPos[a].cn, &ch);
+        assert(ch=='\n');
+    }
+
+    SortVocabRelWordPos();
+
+    printf("Vocab of word size: %u\n", vocabWord_size);
+    printf("Vocab of wordPos size: %u\n", vocabWordPos_size);
+    printf("Vocab of wordPosRel size: %u\n", vocabWordPosRel_size);
+    printf("Vocab of relWordPos size: %u\n", vocabRelWordPos_size);
+    printf("Trees in train file: %u\n", train_trees);
+    printf("Total Words in train file: %u\n",total_words);
     fclose(fin);
 
 }
 
-long long Vocab::GetTotalWords() const {
+unsigned int Vocab::GetTotalWords() const {
     return total_words;
 }
 
-long long Vocab::GetTrainTrees() const {
+unsigned int Vocab::GetTrainTrees() const {
     return train_trees;
 }
 
-long long Vocab::GetTrainWords() const {
+unsigned int Vocab::GetTrainWords() const {
     return train_words;
 }
 
@@ -553,13 +661,11 @@ void Vocab::LearnVocabFromTrainFile(const char *train_file) {
     char word1[MAX_STRING],word2[MAX_STRING];
     FILE *fin;
     long long a, i;
-    for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
     fin = fopen(train_file, "rb");
     if (fin == NULL) {
         printf("ERROR: training data file not found!\n");
         exit(1);
     }
-    vocab_size = 0;
     while (1) {
         word1[0]=0;
         word2[0]=0;
