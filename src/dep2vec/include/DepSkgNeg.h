@@ -14,7 +14,7 @@
 
 struct Para{
     void *pSelf;
-    long long id;
+    int id;
 };
 
 class DepSkgNeg{
@@ -31,9 +31,8 @@ public:
     void SetNegative(int x);
     void SetDebugmode(int x);
     void SetNumthread(int x);
-    void Setlayer1_size(long long x);
+    void Setlayer1_size(int x);
     void SetTrainfile(const char *f);
-    void SetFromTempfile(const char *f);
     void SetIter(int x);
 
 private:
@@ -57,19 +56,17 @@ private:
     int iter;
     clock_t start;
     long long file_size;
-    long long layer1_size;
-    long long word_count_total;
-    long long word_count_actual;
-    long long tree_count_actual;
+    int layer1_size;
+    unsigned int word_count_total;
+    unsigned int tree_count_actual;
 
     char train_file[MAX_STRING];
-    char fromTempfile[MAX_STRING];
     //Vocab v;
     const int table_size;
     void InitUnigramTable();
     void FindTreeStart(FILE *f);
     static void *BasicTrainModelThread(void *param);
-    void TrainModelThread(long long id);
+    void TrainModelThread(int id);
 };
 
 #endif //DEPWORD2VEC_DEPSKGNEG_H

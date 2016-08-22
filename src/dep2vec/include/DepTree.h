@@ -25,21 +25,15 @@ struct TreeNode{
 
 class DepTree{
 public:
-    DepTree(const Vocab &v);
-    void GetDepTreeFromFilePointer(FILE *fin);
-    int GetWordInPos(int pos);
-    int GetSenlen();
-    int GetWordCountActual();
-    vector<int> GetSample(int pos,int window,real sample, unsigned long long &next_random);// get sample
-private:
     int wordCountActual;
     int senlen;
-    TreeNode deptree[MAX_SENTENCE_LENGTH+1];
     const Vocab &vocab;
+    TreeNode deptree[MAX_SENTENCE_LENGTH+1];
 
-    int SubSampling(int pos,int *visited,queue<int> &q,vector<int> &sam,real sample,unsigned long long &next_random);// recursive subsampling
+    DepTree(const Vocab &v);
+    void GetDepTreeFromFilePointer(FILE *fin);
+private:
     void ClearDepTree();// clear the tree
 };
-
 
 #endif //DEPWORD2VEC_DEPTREE_H

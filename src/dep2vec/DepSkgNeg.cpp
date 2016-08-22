@@ -4,7 +4,7 @@
 
 #include "DepSkgNeg.h"
 
-DepSkgNeg::DepSkgNeg(const Vocab& v):table_size(1e8),vocab(v){//initialize default parameter
+DepSkgNeg::DepSkgNeg(const Vocab& v):table_size((int)1e8),vocab(v){//initialize default parameter
     alpha=0.025;
     starting_alpha=0.025;
     binary=0;
@@ -14,19 +14,20 @@ DepSkgNeg::DepSkgNeg(const Vocab& v):table_size(1e8),vocab(v){//initialize defau
     debug_mode=2;
     layer1_size=200;
     word_count_total=0;
-    word_count_actual=0;
     tree_count_actual=0;
     train_file[0]=0;
-    fromTempfile[0]=0;
-    syn0=NULL;
-    syn1neg=NULL;
+    syn0Word=NULL;
+    syn1Word=NULL;
+    syn1WordPos=NULL;
+    syn1WordPosRel=NULL;
+    syn1RelWordPos=NULL;
     expTable = (real *)malloc((EXP_TABLE_SIZE + 1) * sizeof(real));
     if (expTable == NULL) {
         fprintf(stderr, "out of memory\n");
         exit(1);
     }
     for (int i = 0; i < EXP_TABLE_SIZE; i++) {
-        expTable[i] = exp((i / (real)EXP_TABLE_SIZE * 2 - 1) * MAX_EXP); // Precompute the exp() table
+        expTable[i] = (real)exp((i / (real)EXP_TABLE_SIZE * 2 - 1) * MAX_EXP); // Precompute the exp() table
         expTable[i] = expTable[i] / (expTable[i] + 1);                   // Precompute f(x) = x / (x + 1)
     }
     table=NULL;
@@ -38,34 +39,52 @@ DepSkgNeg::DepSkgNeg(const Vocab& v):table_size(1e8),vocab(v){//initialize defau
     //InitNet
     long long a, b;
     unsigned long long next_random = 1;
-    long long vocab_size=vocab.GetVocabSize();
-    posix_memalign((void **)&syn0, 128,  vocab_size * layer1_size * sizeof(real));
 
-    if (syn0 == NULL) {
+    unsigned int vocabWord_size=vocab.GetVocabWordSize();
+    posix_memalign((void **)&syn0Word, 128,  vocabWord_size * layer1_size * sizeof(real));
+    posix_memalign((void **)&syn1Word, 128,  vocabWord_size * layer1_size * sizeof(real));
+
+    unsigned int vocabWordPos_size=vocab.GetVocabWordPosSize();
+    posix_memalign((void **)&syn1WordPos, 128,  vocabWordPos_size * layer1_size * sizeof(real));
+
+    unsigned int vocabWordPosRel_size=vocab.GetVocabWordPosRelSize();
+    posix_memalign((void **)&syn1WordPosRel, 128,  vocabWordPosRel_size * layer1_size * sizeof(real));
+
+    unsigned int vocabRelWordPos_size=vocab.GetVocabRelWordPosSize();
+    posix_memalign((void **)&syn1RelWordPos, 128,  vocabRelWordPos_size * layer1_size * sizeof(real));
+
+    if (syn0Word == NULL || syn1Word == NULL || syn1WordPos==NULL || syn1RelWordPos==NULL || syn1WordPosRel==NULL) {
         printf("Memory allocation failed\n");
         exit(1);
     }
 
-    posix_memalign((void **)&syn1neg, 128,  vocab_size * layer1_size * sizeof(real));
+    for (a = 0; a < vocabWord_size; a++)
+        for (b = 0; b < layer1_size; b++) {
+            syn0Word[a * layer1_size + b] = 0;
+            syn1Word[a * layer1_size + b] = 0;
+        }
 
-    if (syn1neg == NULL) {
-        printf("Memory allocation failed\n");
-        exit(1);
-    }
+    for (a = 0; a < vocabWordPos_size; a++)
+        for (b = 0; b < layer1_size; b++)
+            syn1WordPos[a * layer1_size + b] = 0;
 
-    for (a = 0; a < vocab_size; a++) for (b = 0; b < layer1_size; b++)
-            syn1neg[a * layer1_size + b] = 0;
+    for (a = 0; a < vocabWordPosRel_size; a++)
+        for (b = 0; b < layer1_size; b++)
+            syn1WordPosRel[a * layer1_size + b] = 0;
 
+    for (a = 0; a < vocabRelWordPos_size; a++)
+        for (b = 0; b < layer1_size; b++)
+            syn1RelWordPos[a * layer1_size + b] = 0;
 
-    for (a = 0; a < vocab_size; a++) for (b = 0; b < layer1_size; b++) {
+    for (a = 0; a < vocabWord_size; a++) for (b = 0; b < layer1_size; b++) {
             next_random = next_random * (unsigned long long)25214903917 + 11;
-            syn0[a * layer1_size + b] = (((next_random & 0xFFFF) / (real)65536) - 0.5) / layer1_size;
+            syn0Word[a * layer1_size + b] = (real)((((next_random & 0xFFFF) / (real)65536) - 0.5) / layer1_size);
         }
 
 }
 
 //Set parameter from user configuration
-void DepSkgNeg::Setlayer1_size(long long x){
+void DepSkgNeg::Setlayer1_size(int x){
     layer1_size=x;
 }
 
@@ -75,10 +94,6 @@ void DepSkgNeg::SetBigdata(int x){
 
 void DepSkgNeg::SetTrainfile(const char *f) {
     strcpy(train_file,f);
-}
-
-void DepSkgNeg::SetFromTempfile(const char *f) {
-    strcpy(fromTempfile,f);
 }
 
 void DepSkgNeg::SetDebugmode(int x) {
@@ -112,11 +127,11 @@ void DepSkgNeg::SetIter(int x) {
 }
 
 void DepSkgNeg::InitUnigramTable() {// initialize a table for negative sampling
-    int a, i;
+    unsigned int a, i;
     double train_words_pow = 0;
     double d1, power = 0.75;
     table = (int *)malloc(table_size * sizeof(int));
-    for (a = 0; a < vocab.GetVocabSize(); a++) train_words_pow += pow(vocab.GetVocabWordCn(a), power);
+    for (a = 0; a < vocab.GetVocabWordSize(); a++) train_words_pow += pow(vocab.GetVocabWordCn(a), power);
     i = 0;
     d1 = pow(vocab.GetVocabWordCn(i), power) / train_words_pow;
     for (a = 0; a < table_size; a++) {
@@ -125,7 +140,7 @@ void DepSkgNeg::InitUnigramTable() {// initialize a table for negative sampling
             i++;
             d1 += pow(vocab.GetVocabWordCn(i), power) / train_words_pow;
         }
-        if (i >= vocab.GetVocabSize()) i = vocab.GetVocabSize() - 1;
+        if (i >= vocab.GetVocabWordSize()) i = vocab.GetVocabWordSize() - 1;
     }
 }
 
@@ -147,7 +162,7 @@ void DepSkgNeg::FindTreeStart(FILE *f) {
     }
 }
 
-void DepSkgNeg::TrainModelThread(long long id){
+void DepSkgNeg::TrainModelThread(int id){
     long long a, b, d, word, last_word;
     int sentence_position = 0, sentence_length = 0;
     long long total_word_count = 0, last_total_word_count = 0,train_word_count=0,last_train_word_count=0;
@@ -390,17 +405,17 @@ void DepSkgNeg::SaveWordVectors(const char *output_file) {
         fprintf(stderr, "Cannot open %s: permission denied\n", output_file);
         exit(1);
     }
-    long long a=0,b=0;
+    unsigned int a=0,b=0;
     // Save the word vectors
-    long long vocab_size=vocab.GetVocabSize();
-    fprintf(fo, "%lld %lld\n", vocab_size, layer1_size);
+    unsigned int vocab_size=vocab.GetVocabWordSize();
+    fprintf(fo, "%u %u\n", vocab_size, layer1_size);
     for (a = 0; a < vocab_size; a++) {
         const char* wordOfa=vocab.GetVocabWord(a);
         if ( wordOfa!= NULL) {
             fprintf(fo,"%s ",wordOfa);
         }
-        if (binary) for (b = 0; b < layer1_size; b++) fwrite(&syn0[a * layer1_size + b], sizeof(real), 1, fo);
-        else for (b = 0; b < layer1_size; b++) fprintf(fo, "%lf ", syn0[a * layer1_size + b]);
+        if (binary) for (b = 0; b < layer1_size; b++) fwrite(&syn0Word[a * layer1_size + b], sizeof(real), 1, fo);
+        else for (b = 0; b < layer1_size; b++) fprintf(fo, "%lf ", syn0Word[a * layer1_size + b]);
         fprintf(fo, "\n");
     }
 }
