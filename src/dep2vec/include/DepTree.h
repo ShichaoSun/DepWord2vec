@@ -17,7 +17,8 @@ typedef float real;
 #define MAX_SENTENCE_LENGTH 1024
 
 struct TreeNode{
-    int wordInVocab;
+    char wordPos[MAX_STRING];
+    char toRel[MAX_STRING];
     int parent;
     vector<int> child;
 };

@@ -579,13 +579,14 @@ void Vocab::ReadVocab(const char *read_vocab_file) {
 
     SortVocabRelWordPos();
 
+    fclose(fin);
+
     printf("Vocab of word size: %u\n", vocabWord_size);
     printf("Vocab of wordPos size: %u\n", vocabWordPos_size);
     printf("Vocab of wordPosRel size: %u\n", vocabWordPosRel_size);
     printf("Vocab of relWordPos size: %u\n", vocabRelWordPos_size);
     printf("Trees in train file: %u\n", train_trees);
     printf("Total Words in train file: %u\n",total_words);
-    fclose(fin);
 
 }
 
@@ -601,122 +602,206 @@ unsigned int Vocab::GetTrainWords() const {
     return train_words;
 }
 
-int Vocab::ReadWordFromTrainFile(char *word1,char *word2,FILE *fin) {
-    char temp[MAX_STRING];
-    char rel[MAX_STRING];
-    while (true) {
-        if (feof(fin))
-            return 0;
-        fgets(temp, MAX_STRING, fin);
-        if (!strcmp(temp, "\n"))// find a new tree
-            train_trees++;
-        int i = 0;
-        for (i = 0; i < strlen(temp) - 1; i++) {
-            if (!isdigit(temp[i]))
-                break;
-        }
-
-        bool flag= false;
-        if (i < strlen(temp) - 1) {// a line of words
-            assert(strlen(temp) > 4);// can be slip 4 string
-            const char *d = " ";
-            char *p;
-            char *q = temp;
-
-            p = strsep(&q, d);// dep_relationship
-            assert(strlen(p) > 0);
-            strcpy(rel,p);
-
-            p = strsep(&q, d);// parent
-            assert(strlen(p) > 0);
-
-            for (int k = 0; k < strlen(p); k++) {
-                if (isalpha(p[k])) {// not punct
-                    strcpy(word1, p);
-                }
-            }
-
-            p = strsep(&q, d);
-            assert(strlen(p) > 0);//parent position in sentence
-
-            if (atoi(p) == 0 && !strcmp(word1, "ROOT"))// not root
-                word1[0] = 0;
-
-            p = strsep(&q, d);
-            assert(strlen(p)>0);//child
-            for (int k = 0; k < strlen(p); k++) {
-                if (isalpha(p[k])) {//not punct
-                    strcpy(word2, p);
-                    flag= true;
-                }
-            }
-
-        }
-        return 0;
-    }
-}
-
-
-void Vocab::LearnVocabFromTrainFile(const char *train_file) {
-    char word1[MAX_STRING],word2[MAX_STRING];
+int Vocab::LearnVocabFromTrainFile(const char *train_file) {
+    char word1[MAX_STRING],word2[MAX_STRING],rel[MAX_STRING],temp[MAX_STRING];
     FILE *fin;
-    long long a, i;
+    char *p;
+    const char *d=" ";
+
     fin = fopen(train_file, "rb");
     if (fin == NULL) {
         printf("ERROR: training data file not found!\n");
         exit(1);
     }
-    while (1) {
-        word1[0]=0;
-        word2[0]=0;
-        ReadWordFromTrainFile(word1,word2, fin);
-        if(strlen(word1)==0 && strlen(word2)==0 && feof(fin))
+
+    while (!feof(fin)) {
+        while (!feof(fin)){
+            fgets(temp,MAX_STRING,fin);  //read in a line
+            if(strlen(temp)<2)
+                continue;
+            int j=0;
+            for(j=0;j<strlen(temp)-1;j++)
+                if(!isdigit(temp[j]))
+                    break;
+            if(j==strlen(temp)-1 && temp[j]=='\n')
+                break;
+            else
+                continue;
+        }
+
+        if(feof(fin))
             break;
-        assert(strlen(word1)>0 || strlen(word2)>0);
 
-        if( tree_degree && strlen(word1)>0) {
-            i = SearchVocab(word1);
-            if (i == -1)
-                AddWordToVocab(word1);
-            else vocab[i].cn++;
-            if (vocab_size > vocab_hash_size * 0.7)
-                ReduceVocab();
+        int senlen=atoi(temp);
+        assert(senlen>0);
+
+        total_words+=senlen;
+        train_trees++;
+
+        for(int i=0;i<senlen;i++){
+            word1[0]=0;
+            word2[0]=0;
+            rel[0]=0;
+
+            if(!feof(fin)) break;
+            fgets(temp,MAX_STRING,fin);
+
+            char *q=temp;
+
+            p = strsep(&q, d);  //dep_relationship
+            assert(strlen(p)>0);
+            strcpy(rel,p);
+
+            p = strsep(&q, d);  //parent word
+            assert(strlen(p)>0);
+            strcpy(word1,p);
+
+            p = strsep(&q, d);  //parent position in sentence
+            assert(strlen(p)>0  && atoi(p)>-1);
+
+            p = strsep(&q, d);  //child word
+            assert(strlen(p)>0);
+            strcpy(word2,p);
+
+            p = strsep(&q, d);   //child position in sentence
+            assert(strlen(p)>0 && atoi(p)>-1);
+
+            for (int k = 0; k < strlen(word1); k++) {
+                if (!isalpha(word1[k])) {// is punct
+                    word1[0]=0;
+                    break;
+                }
+            }
+
+            for (int k = 0; k < strlen(word2); k++) {
+                if (!isalpha(word2[k])) {// is punct
+                    word2[0]=0;
+                    break;
+                }
+            }
+
+            if(word2[0]!=0){
+                int tw=SearchVocabWordPos(word2);
+                if(tw==-1)
+                    AddWordPosToVocab(word2);
+                else
+                    vocabWordPos[tw].cn++;
+
+                char rwp[MAX_STRING];
+                strcpy(rwp,rel);
+                unsigned long tl=strlen(rwp);
+                rwp[tl+1]=0;
+                rwp[tl]='/';
+                strcat(rwp,word2);
+                tw=SearchVocabRelWordPos(rwp);
+                if(tw==-1)
+                    AddRelWordPosToVocab(rwp);
+                else
+                    vocabRelWordPos[tw].cn++;
+
+                for(int k=0;k < tl;k++){
+                    if(word2[k]=='/'){
+                        word2[k]=0;
+                        break;
+                    }
+                }
+                tw=SearchVocabWord(word2);
+                if(tw==-1)
+                    AddWordToVocab(word2);
+                else
+                    vocabWord[tw].cn++;
+            }
+
+            if(word1[0]!=0 && strcmp(rel,"root")){
+                int tw=SearchVocabWordPos(word1);
+                if(tw==-1)
+                    AddWordPosToVocab(word1);
+                else
+                    vocabWordPos[tw].cn++;
+
+                unsigned long tl=strlen(word1);
+                word1[tl+1]=0;
+                word1[tl]='/';
+                strcat(word1,rel);
+                tw=SearchVocabWordPosRel(word1);
+                if(tw==-1)
+                    AddWordPosRelToVocab(word1);
+                else
+                    vocabWordPosRel[tw].cn++;
+
+                for(int k=0;k < tl;k++){
+                    if(word2[k]=='/'){
+                        word2[k]=0;
+                        break;
+                    }
+                }
+                tw=SearchVocabWord(word1);
+                if(tw==-1)
+                    AddWordToVocab(word1);
+                else
+                    vocabWord[tw].cn++;
+            }
         }
 
-        if(strlen(word2)>0) {
-            i = SearchVocab(word2);
-            if (i == -1)
-                AddWordToVocab(word2);
-            else vocab[i].cn++;
-            train_words++;
-            total_words++;
-            if (vocab_size > vocab_hash_size * 0.7)
-                ReduceVocab();
-        }
+        if(!feof(fin)) break;
 
-        if (feof(fin)) break;
+        fgets(temp,MAX_STRING,fin);
+        assert(!strcmp(temp,"\n"));
     }
 
-    SortVocab();
-    printf("Vocab size: %lld\n", vocab_size);
-    printf("Trees in train file: %lld\n", train_trees);
-    printf("Total Words in train file: %lld\n",total_words);
-
     fclose(fin);
+
+    SortVocabWord();
+    SortVocabWordPos();
+    SortVocabWordPosRel();
+    SortVocabRelWordPos();
+
+    printf("Vocab of word size: %u\n", vocabWord_size);
+    printf("Vocab of wordPos size: %u\n", vocabWordPos_size);
+    printf("Vocab of wordPosRel size: %u\n", vocabWordPosRel_size);
+    printf("Vocab of relWordPos size: %u\n", vocabRelWordPos_size);
+
+    printf("Trained words in train file: %u\n", train_words);
+    printf("Trees in train file: %u\n", train_trees);
+    printf("Total Words in train file: %u\n",total_words);
+
+    return 0;
 }
 
 Vocab::~Vocab() {
-    int a;
-
-    for (a = 0; a < vocab_size; a++) {
-        if (vocab[a].word != NULL) {
-            free(vocab[a].word);
+    for (int a = 0; a < vocabWord_size; a++) {
+        if (vocabWord[a].cell != NULL) {
+            free(vocabWord[a].cell);
         }
-
     }
-    free(vocab[vocab_size].word);
-    free(vocab);
-}
-    ClearVocab();
-    free(vocab_hash);
+    free(vocabWord[vocabWord_size].cell);
+    free(vocabWord);
+    free(vocabWord_hash);
+
+    for (int a = 0; a < vocabWordPos_size; a++) {
+        if (vocabWordPos[a].cell != NULL) {
+            free(vocabWordPos[a].cell);
+        }
+    }
+    free(vocabWordPos[vocabWordPos_size].cell);
+    free(vocabWordPos);
+    free(vocabWordPos_hash);
+
+    for (int a = 0; a < vocabWordPosRel_size; a++) {
+        if (vocabWordPosRel[a].cell != NULL) {
+            free(vocabWordPosRel[a].cell);
+        }
+    }
+    free(vocabWordPosRel[vocabWordPosRel_size].cell);
+    free(vocabWordPosRel);
+    free(vocabWordPosRel_hash);
+
+    for (int a = 0; a < vocabRelWordPos_size; a++) {
+        if (vocabRelWordPos[a].cell != NULL) {
+            free(vocabRelWordPos[a].cell);
+        }
+    }
+    free(vocabRelWordPos[vocabRelWordPos_size].cell);
+    free(vocabRelWordPos);
+    free(vocabRelWordPos_hash);
 }

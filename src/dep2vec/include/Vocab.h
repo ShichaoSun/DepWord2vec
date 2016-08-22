@@ -22,7 +22,7 @@ class Vocab {
 public:
     Vocab();
 
-    void LearnVocabFromTrainFile(const char *train_file);
+    int LearnVocabFromTrainFile(const char *train_file);
 
     void SaveVocab(const char *save_vocab_file);
     void ReadVocab(const char *read_vocab_file);
