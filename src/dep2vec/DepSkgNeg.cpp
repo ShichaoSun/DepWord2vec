@@ -84,7 +84,7 @@ DepSkgNeg::DepSkgNeg(const Vocab& v):table_size((int)1e8),vocab(v){//initialize 
 }
 
 //Set parameter from user configuration
-void DepSkgNeg::Setlayer1_size(int x){
+void DepSkgNeg::Setlayer1_size(unsigned int x){
     layer1_size=x;
 }
 
@@ -169,7 +169,7 @@ void DepSkgNeg::TrainModelThread(int id){
     long long tree_count=0,last_tree_count=0;
     long long l1, l2, c, target, label;
     int local_iter=iter;
-    unsigned long long next_random = id;
+    unsigned long long next_random = (unsigned long long)id;
     real f, g;
     clock_t now,last_clock=start;
 
@@ -186,8 +186,8 @@ void DepSkgNeg::TrainModelThread(int id){
 
     DepTree depTree(vocab);
 
-    long long train_words=vocab.GetTrainWords();
-    long long train_trees=vocab.GetTrainTrees();
+    unsigned int total_words=vocab.GetTotalWords();
+    unsigned int train_trees=vocab.GetTrainTrees();
 
     while (1) {
         if (tree_count - last_tree_count >= 100) {  //update the learning rate for every 100 trees

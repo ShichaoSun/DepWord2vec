@@ -31,7 +31,7 @@ public:
     void SetNegative(int x);
     void SetDebugmode(int x);
     void SetNumthread(int x);
-    void Setlayer1_size(int x);
+    void Setlayer1_size(unsigned int x);
     void SetTrainfile(const char *f);
     void SetIter(int x);
 
@@ -56,7 +56,7 @@ private:
     int iter;
     clock_t start;
     long long file_size;
-    int layer1_size;
+    unsigned int layer1_size;
     unsigned int word_count_total;
     unsigned int tree_count_actual;
 
