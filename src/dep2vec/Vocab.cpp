@@ -106,18 +106,6 @@ char* Vocab::GetVocabWord(unsigned int a) const {
     return vocabWord[a].cell;
 }
 
-char* Vocab::GetVocabWordPos(unsigned int a) const {
-    return vocabWordPos[a].cell;
-}
-
-char* Vocab::GetVocabWordPosRel(unsigned int a) const {
-    return vocabWordPosRel[a].cell;
-}
-
-char* Vocab::GetVocabRelWordPos(unsigned int a) const {
-    return vocabRelWordPos[a].cell;
-}
-
 int Vocab::AddWordToVocab(char *word) {// Adds a word to the vocabulary
     unsigned long length = strlen(word) + 1;
     int hash;
@@ -220,18 +208,6 @@ unsigned int Vocab::GetVocabRelWordPosSize() const{
 
 long long Vocab::GetVocabWordCn(unsigned int i) const {
     return vocabWord[i].cn;
-}
-
-long long Vocab::GetVocabWordPosCn(unsigned int i) const {
-    return vocabWordPos[i].cn;
-}
-
-long long Vocab::GetVocabWordPosRelCn(unsigned int i) const {
-    return vocabWordPosRel[i].cn;
-}
-
-long long Vocab::GetVocabRelWordPosCn(unsigned int i) const {
-    return vocabRelWordPos[i].cn;
 }
 
 void Vocab::SetMincount(int x){
@@ -643,7 +619,6 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
             word2[0]=0;
             rel[0]=0;
 
-            if(!feof(fin)) break;
             fgets(temp,MAX_STRING,fin);
 
             char *q=temp;
@@ -687,6 +662,8 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
                 else
                     vocabWordPos[tw].cn++;
 
+                if (vocabWordPos_size > vocab_hash_size * 0.7) ReduceVocabWordPos();
+
                 char rwp[MAX_STRING];
                 strcpy(rwp,rel);
                 unsigned long tl=strlen(rwp);
@@ -699,6 +676,9 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
                 else
                     vocabRelWordPos[tw].cn++;
 
+                if (vocabRelWordPos_size > vocab_hash_size * 0.7) ReduceVocabRelWordPos();
+
+
                 for(int k=0;k < tl;k++){
                     if(word2[k]=='/'){
                         word2[k]=0;
@@ -710,40 +690,25 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
                     AddWordToVocab(word2);
                 else
                     vocabWord[tw].cn++;
+
+                if (vocabWord_size > vocab_hash_size * 0.7) ReduceVocabWord();
             }
 
             if(word1[0]!=0 && strcmp(rel,"root")){
-                int tw=SearchVocabWordPos(word1);
-                if(tw==-1)
-                    AddWordPosToVocab(word1);
-                else
-                    vocabWordPos[tw].cn++;
-
                 unsigned long tl=strlen(word1);
                 word1[tl+1]=0;
                 word1[tl]='/';
                 strcat(word1,rel);
-                tw=SearchVocabWordPosRel(word1);
+                int tw=SearchVocabWordPosRel(word1);
                 if(tw==-1)
                     AddWordPosRelToVocab(word1);
                 else
                     vocabWordPosRel[tw].cn++;
 
-                for(int k=0;k < tl;k++){
-                    if(word2[k]=='/'){
-                        word2[k]=0;
-                        break;
-                    }
-                }
-                tw=SearchVocabWord(word1);
-                if(tw==-1)
-                    AddWordToVocab(word1);
-                else
-                    vocabWord[tw].cn++;
+                if (vocabWordPosRel_size > vocab_hash_size * 0.7) ReduceVocabWordPosRel();
+
             }
         }
-
-        if(!feof(fin)) break;
 
         fgets(temp,MAX_STRING,fin);
         assert(!strcmp(temp,"\n"));

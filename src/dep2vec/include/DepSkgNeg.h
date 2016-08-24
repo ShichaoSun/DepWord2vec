@@ -58,7 +58,7 @@ private:
     long long file_size;
     unsigned int layer1_size;
     unsigned int word_count_total;
-    unsigned int tree_count_actual;
+    unsigned int tree_count_total;
 
     char train_file[MAX_STRING];
     //Vocab v;

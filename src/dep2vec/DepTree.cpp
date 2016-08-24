@@ -4,7 +4,6 @@
 #include "DepTree.h"
 
 DepTree::DepTree(const Vocab &v):vocab(v){
-    wordCountActual=0;
     senlen=-1;
     for (int i = 0; i <= MAX_SENTENCE_LENGTH; i++) {
         deptree[i].parent = -1;
@@ -21,7 +20,6 @@ void DepTree::ClearDepTree() {
         }
     }
     senlen=-1;
-    wordCountActual=0;
 }
 
 void DepTree::GetDepTreeFromFilePointer(FILE *fin) {
@@ -46,8 +44,6 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin) {
     }
     senlen = atoi(temp);
     assert(senlen > 0 && senlen + 1 < MAX_SENTENCE_LENGTH);
-
-    wordCountActual = senlen;
 
     for (int i = 0; i < senlen; i++) {
         assert(!feof(fin));

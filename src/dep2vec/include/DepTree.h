@@ -25,7 +25,6 @@ struct TreeNode{
 
 class DepTree{
 public:
-    int wordCountActual;
     int senlen;
     const Vocab &vocab;
     TreeNode deptree[MAX_SENTENCE_LENGTH+1];

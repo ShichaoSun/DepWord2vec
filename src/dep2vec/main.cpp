@@ -11,7 +11,7 @@
 int main(int argc, char **argv) {
 
     Vocab vocab;
-    char train_file[MAX_STRING],fromTempfile[MAX_STRING];
+    char train_file[MAX_STRING];
     char default_config[MAX_STRING]="/home/bruce/ClionProjects/DepWord2vec/default_dep2vec_config.json";
     std::ifstream in(default_config, std::ios::in);
     std::istreambuf_iterator<char> beg(in), end;
@@ -44,14 +44,8 @@ int main(int argc, char **argv) {
     DepSkgNeg depskgneg(vocab);
     depskgneg.SetTrainfile(train_file);
 
-    if (config.HasMember("temp_file")) {
-        std::string tempfile = config["temp_file"].GetString();
-        strcpy(fromTempfile, tempfile.c_str());
-        depskgneg.SetFromTempfile(fromTempfile);
-    }
-
     if (config.HasMember("layer1_size"))
-        depskgneg.Setlayer1_size(config["layer1_size"].GetInt());
+        depskgneg.Setlayer1_size((unsigned int)config["layer1_size"].GetInt());
 
     if (config.HasMember("debug_mode"))
         depskgneg.SetDebugmode(config["debug_mode"].GetInt());
