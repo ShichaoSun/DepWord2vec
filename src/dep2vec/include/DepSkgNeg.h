@@ -25,7 +25,6 @@ public:
 
     void SetBinary(int x);
     void SetBigdata(int x);
-    void SetWindow(int x);
     void SetAlpha(real x);
     void SetSample(real x);
     void SetNegative(int x);
@@ -51,7 +50,6 @@ private:
     int bigdata;
     int num_threads;
     int negative;
-    int window;
     int binary;
     int iter;
     clock_t start;

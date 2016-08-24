@@ -56,9 +56,6 @@ int main(int argc, char **argv) {
     if (config.HasMember("iter"))
         depskgneg.SetIter(config["iter"].GetInt());
 
-    if (config.HasMember("window"))
-        depskgneg.SetWindow(config["window"].GetInt());
-
     if (config.HasMember("sample"))
         depskgneg.SetSample(config["sample"].GetFloat());
 

@@ -16,6 +16,7 @@ void DepTree::ClearDepTree() {
         for (int i = 0; i <= senlen; i++) {
             deptree[i].parent = -1;
             deptree[i].wordPos[0] = 0;
+            deptree[i].toRel[0]=0;
             deptree[i].child.clear();
         }
     }
@@ -67,11 +68,6 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin) {
         p = strsep(&q, d);  //child word
         assert(strlen(p) > 0);
         strcpy(childw, p);
-        for (int k = 0; k < strlen(childw); k++)
-            if (childw[k] == '/') {
-                childw[k] = 0;
-                break;
-            }
 
         p = strsep(&q, d);   //child position in sentence
         assert(strlen(p) > 0);

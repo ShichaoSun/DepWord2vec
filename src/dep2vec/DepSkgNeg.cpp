@@ -34,7 +34,6 @@ DepSkgNeg::DepSkgNeg(const Vocab& v):table_size((int)1e8),vocab(v){//initialize 
     sample=1e-4;
     negative=5;
     num_threads=8;
-    window=5;
 
     //InitNet
     long long a, b;
@@ -116,9 +115,6 @@ void DepSkgNeg::SetAlpha(real x){
 void DepSkgNeg::SetNumthread(int x){
     num_threads=x;
 }
-void DepSkgNeg::SetWindow(int x){
-    window=x;
-}
 
 void DepSkgNeg::SetNegative(int x){
     negative=x;
@@ -194,8 +190,9 @@ void DepSkgNeg::TrainModelThread(int id){
             last_tree_count = tree_count;
             if ((debug_mode > 1)) {
                 now = clock();
-                printf("%cAlpha: %f  Tree Progress: %.2f%%  Trees/thread/sec: %.2fk  Words/thread/sec: %.2fk ", 13,
+                printf("%cAlpha: %f  Word Progress: %.2f%% Tree Progress: %.2f%%  Trees/thread/sec: %.2fk  Words/thread/sec: %.2fk ", 13,
                        alpha,
+                       word_count_total / (real) (iter * total_words + 1) * 100,
                        tree_count_total / (real) (iter * total_trees + 1) * 100,
                        tree_count_total / ((real) (now - start + 1) / (real) CLOCKS_PER_SEC * 1000),
                        word_count_total / ((real) (now - start + 1) / (real) CLOCKS_PER_SEC * 1000));
@@ -518,7 +515,7 @@ void DepSkgNeg::TrainModelThread(int id){
         tree_count++;
         word_count+=sentence_length;
 
-        if(word_count > total_trees/num_threads || feof(fi)){// every thread can train trees ,not more than train_trees/num_threads
+        if(word_count > total_words/num_threads || feof(fi)){// every thread can train trees ,not more than train_trees/num_threads
             tree_count_total += tree_count - last_tree_count;
             word_count_total += word_count - last_word_count;
             local_iter--;// next iteration

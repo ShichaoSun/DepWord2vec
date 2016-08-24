@@ -642,6 +642,7 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
             assert(strlen(p)>0 && atoi(p)>-1);
 
             for (int k = 0; k < strlen(word1); k++) {
+                if(word1[k]=='/') break;
                 if (!isalpha(word1[k])) {// is punct
                     word1[0]=0;
                     break;
@@ -649,6 +650,7 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
             }
 
             for (int k = 0; k < strlen(word2); k++) {
+                if(word2[k]=='/') break;
                 if (!isalpha(word2[k])) {// is punct
                     word2[0]=0;
                     break;
