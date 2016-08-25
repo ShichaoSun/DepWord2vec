@@ -534,6 +534,11 @@ void DepSkgNeg::TrainModelThread(int id){
             tree_count_total += tree_count - last_tree_count;
             word_count_total += word_count - last_word_count;
             local_iter--;// next iteration
+            if(id==0 && bigdata==1){
+                char temp[MAX_STRING];
+                sprintf(temp,"%d",iter-local_iter);
+                SaveWordVectors(temp);
+            }
             if (local_iter == 0)
                 break;
             tree_count = 0;
