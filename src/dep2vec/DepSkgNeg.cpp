@@ -207,6 +207,21 @@ void DepSkgNeg::TrainModelThread(int id){
         depTree.GetDepTreeFromFilePointer(fi);
         sentence_length = depTree.senlen;
 
+        if(sentence_length==-1 && feof(fi)){
+            tree_count_total += tree_count - last_tree_count;
+            word_count_total += word_count - last_word_count;
+            local_iter--;// next iteration
+            if (local_iter == 0)
+                break;
+            tree_count = 0;
+            word_count=0;
+            last_tree_count = 0;
+            last_word_count = 0;
+            fseek(fi, file_size / (long long) num_threads * id, SEEK_SET);
+            FindTreeStart(fi);
+            continue;
+        }
+
         //step2:train a tree
         for (unsigned int sentence_position = 1; sentence_position <= sentence_length; sentence_position++) {
 
@@ -515,7 +530,7 @@ void DepSkgNeg::TrainModelThread(int id){
         tree_count++;
         word_count+=sentence_length;
 
-        if(word_count > total_words/num_threads || feof(fi)){// every thread can train trees ,not more than train_trees/num_threads
+        if(word_count > total_words/num_threads){// every thread can train trees ,not more than train_trees/num_threads
             tree_count_total += tree_count - last_tree_count;
             word_count_total += word_count - last_word_count;
             local_iter--;// next iteration
