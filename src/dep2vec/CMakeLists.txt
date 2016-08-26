@@ -2,8 +2,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 include_directories(include)
 include_directories(../../third_party/rapidjson/include)
-set(SOURCE_FILES main.cpp Vocab.cpp DepSkgNeg.cpp DepTree.cpp Vocab.cpp)
-#set(EXECUTABLE_OUTPUT_PATH ../../bin)
+set(SOURCE_FILES main.cpp Vocab.cpp DepSkgNeg.cpp DepTree.cpp)
 LINK_LIBRARIES('m')
 add_executable(Dep2vec ${SOURCE_FILES})
 

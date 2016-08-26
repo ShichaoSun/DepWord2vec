@@ -4,7 +4,7 @@
 
 #include "Vocab.h"
 
-Vocab::Vocab():vocab_hash_size(30000000){
+Vocab::Vocab():vocab_hash_size(300000000){
     vocabWord_max_size=1000;
     vocabWordPos_max_size=1000;
     vocabWordPosRel_max_size=1000;
@@ -406,6 +406,7 @@ void Vocab::SaveVocab(const char *save_vocab_file) {
     fprintf(fo,"RelWordPos %u\n",vocabRelWordPos_size);
     for (i = 0; i < vocabRelWordPos_size; i++) fprintf(fo, "%s %lld\n", vocabRelWordPos[i].cell, vocabRelWordPos[i].cn);
     fclose(fo);
+    printf("Vocabs have been saved!\n");
 }
 
 
@@ -589,8 +590,8 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
         printf("ERROR: training data file not found!\n");
         exit(1);
     }
-
     while (!feof(fin)) {
+
         while (!feof(fin)){
             fgets(temp,MAX_STRING,fin);  //read in a line
             if(strlen(temp)<2)
@@ -664,7 +665,9 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
                 else
                     vocabWordPos[tw].cn++;
 
-                if (vocabWordPos_size > vocab_hash_size * 0.7) ReduceVocabWordPos();
+                if (vocabWordPos_size > vocab_hash_size * 0.7)
+                    ReduceVocabWordPos();
+
 
                 char rwp[MAX_STRING];
                 strcpy(rwp,rel);
@@ -678,7 +681,9 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
                 else
                     vocabRelWordPos[tw].cn++;
 
-                if (vocabRelWordPos_size > vocab_hash_size * 0.7) ReduceVocabRelWordPos();
+                if (vocabRelWordPos_size > vocab_hash_size * 0.7)
+                    ReduceVocabRelWordPos();
+
 
 
                 for(int k=0;k < tl;k++){
@@ -693,7 +698,9 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
                 else
                     vocabWord[tw].cn++;
 
-                if (vocabWord_size > vocab_hash_size * 0.7) ReduceVocabWord();
+                if (vocabWord_size > vocab_hash_size * 0.7)
+                    ReduceVocabWord();
+
             }
 
             if(word1[0]!=0 && strcmp(rel,"root")){
@@ -707,16 +714,24 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
                 else
                     vocabWordPosRel[tw].cn++;
 
-                if (vocabWordPosRel_size > vocab_hash_size * 0.7) ReduceVocabWordPosRel();
+                if (vocabWordPosRel_size > vocab_hash_size * 0.7)
+                    ReduceVocabWordPosRel();
 
             }
         }
 
         fgets(temp,MAX_STRING,fin);
         assert(!strcmp(temp,"\n"));
+        if(train_trees %10000==0){
+            printf("%c%u",13,train_trees);
+            fflush(stdout);
+        }
+
     }
 
     fclose(fin);
+
+    printf(" file is close");
 
     SortVocabWord();
     SortVocabWordPos();
