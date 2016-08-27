@@ -180,7 +180,7 @@ void DepSkgNeg::TrainModelThread(int id){
     DepTree depTree;
 
     long long total_words=vocab.GetTotalWords();
-    unsigned int total_trees=vocab.GetTrainTrees();
+    long long total_trees=vocab.GetTrainTrees();
 
     while (1) {
         if (word_count - last_word_count >= 10000) {  //update the learning rate for every 100 trees

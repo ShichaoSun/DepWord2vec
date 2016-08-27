@@ -39,9 +39,9 @@ public:
     long long GetVocabWordPosRelCn(unsigned int i) const;
     long long GetVocabRelWordPosCn(unsigned int i) const;
 
-    unsigned int GetTotalWords() const;
-    unsigned int GetTrainWords() const;
-    unsigned int GetTrainTrees() const;
+    long long GetTotalWords() const;
+    long long GetTrainWords() const;
+    long long GetTrainTrees() const;
 
     char *GetVocabWord(unsigned int a) const;//Get vocab cell value
     char *GetVocabWordPos(unsigned int a) const;
@@ -55,9 +55,9 @@ public:
 
     ~Vocab();
 private:
-    unsigned int total_words;
-    unsigned int train_words;
-    unsigned int train_trees;
+    long long total_words;
+    long long train_words;
+    long long train_trees;
 
     unsigned int vocabWord_size;
     unsigned int vocabWordPos_size;

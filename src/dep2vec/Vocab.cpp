@@ -395,8 +395,8 @@ void Vocab::ReduceVocabRelWordPos(){
 void Vocab::SaveVocab(const char *save_vocab_file) {
     unsigned int i;
     FILE *fo = fopen(save_vocab_file, "wb");
-    fprintf(fo, "train_trees %u\n",train_trees);
-    fprintf(fo, "total_words %u\n",total_words);
+    fprintf(fo, "train_trees %lld\n",train_trees);
+    fprintf(fo, "total_words %lld\n",total_words);
     fprintf(fo,"Word %u\n",vocabWord_size);
     for (i = 0; i < vocabWord_size; i++) fprintf(fo, "%s %lld\n", vocabWord[i].cell, vocabWord[i].cn);
     fprintf(fo,"WordPos %u\n",vocabWordPos_size);
@@ -429,7 +429,7 @@ void Vocab::ReadVocab(const char *read_vocab_file) {
     }
     line[i-1]=0;
     assert(!strcmp(line,"train_trees"));
-    fscanf(fin, "%u%c",&train_trees, &ch);
+    fscanf(fin, "%lld%c",&train_trees, &ch);
     assert(ch=='\n');
 
     i=0;
@@ -441,7 +441,7 @@ void Vocab::ReadVocab(const char *read_vocab_file) {
     }
     line[i-1]=0;
     assert(!strcmp(line,"total_words"));
-    fscanf(fin, "%u%c", &total_words, &ch);
+    fscanf(fin, "%lld%c", &total_words, &ch);
     assert(ch=='\n');
 
     i=0;
@@ -562,20 +562,20 @@ void Vocab::ReadVocab(const char *read_vocab_file) {
     printf("Vocab of wordPos size: %u\n", vocabWordPos_size);
     printf("Vocab of wordPosRel size: %u\n", vocabWordPosRel_size);
     printf("Vocab of relWordPos size: %u\n", vocabRelWordPos_size);
-    printf("Trees in train file: %u\n", train_trees);
-    printf("Total Words in train file: %u\n",total_words);
+    printf("Trees in train file: %lld\n", train_trees);
+    printf("Total Words in train file: %lld\n",total_words);
 
 }
 
-unsigned int Vocab::GetTotalWords() const {
+long long Vocab::GetTotalWords() const {
     return total_words;
 }
 
-unsigned int Vocab::GetTrainTrees() const {
+long long Vocab::GetTrainTrees() const {
     return train_trees;
 }
 
-unsigned int Vocab::GetTrainWords() const {
+long long Vocab::GetTrainWords() const {
     return train_words;
 }
 
@@ -723,7 +723,7 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
         fgets(temp,MAX_STRING,fin);
         assert(!strcmp(temp,"\n"));
         if(train_trees %10000==0){
-            printf("%c%uK",13,train_trees/1000);
+            printf("%c%lldK",13,train_trees/1000);
             fflush(stdout);
         }
 
@@ -741,9 +741,9 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
     printf("Vocab of wordPosRel size: %u\n", vocabWordPosRel_size);
     printf("Vocab of relWordPos size: %u\n", vocabRelWordPos_size);
 
-    printf("Trained words in train file: %u\n", train_words);
-    printf("Trees in train file: %u\n", train_trees);
-    printf("Total Words in train file: %u\n",total_words);
+    printf("Trained words in train file: %lld\n", train_words);
+    printf("Trees in train file: %lld\n", train_trees);
+    printf("Total Words in train file: %lld\n",total_words);
 
     return 0;
 }
