@@ -723,7 +723,7 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
         fgets(temp,MAX_STRING,fin);
         assert(!strcmp(temp,"\n"));
         if(train_trees %10000==0){
-            printf("%c%u",13,train_trees);
+            printf("%c%uK",13,train_trees/1000);
             fflush(stdout);
         }
 
@@ -731,14 +731,12 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
 
     fclose(fin);
 
-    printf(" file is close");
-
     SortVocabWord();
     SortVocabWordPos();
     SortVocabWordPosRel();
     SortVocabRelWordPos();
 
-    printf("Vocab of word size: %u\n", vocabWord_size);
+    printf("\nVocab of word size: %u\n", vocabWord_size);
     printf("Vocab of wordPos size: %u\n", vocabWordPos_size);
     printf("Vocab of wordPosRel size: %u\n", vocabWordPosRel_size);
     printf("Vocab of relWordPos size: %u\n", vocabRelWordPos_size);

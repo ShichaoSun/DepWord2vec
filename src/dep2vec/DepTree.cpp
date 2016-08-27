@@ -3,7 +3,7 @@
 //
 #include "DepTree.h"
 
-DepTree::DepTree(const Vocab &v):vocab(v){
+DepTree::DepTree(){
     senlen=-1;
     for (int i = 0; i <= MAX_SENTENCE_LENGTH; i++) {
         deptree[i].parent = -1;
@@ -23,14 +23,14 @@ void DepTree::ClearDepTree() {
     senlen=-1;
 }
 
-void DepTree::GetDepTreeFromFilePointer(FILE *fin) {
+int DepTree::GetDepTreeFromFilePointer(FILE *fin) {
     ClearDepTree();  //clear
     char temp[MAX_STRING],rel[MAX_STRING],parentw[MAX_STRING],childw[MAX_STRING];
     char *p;
     const char *d = " ";
     while (true) {
         if (feof(fin))
-            return;
+            return 0;
         fgets(temp, MAX_STRING, fin);  //read in a line
         if (strlen(temp) < 2)
             continue;
@@ -79,17 +79,30 @@ void DepTree::GetDepTreeFromFilePointer(FILE *fin) {
 
         if(deptree[childInSen].toRel[0]==0)
             strcpy(deptree[childInSen].toRel,rel);
-        assert(!strcmp(deptree[childInSen].toRel,rel));
+        if(strcmp(deptree[childInSen].toRel,rel)){
+            GetDepTreeFromFilePointer(fin);
+            return 0;
+        }
 
         if(deptree[childInSen].wordPos[0]==0)
             strcpy(deptree[childInSen].wordPos,childw);
-        assert(!strcmp(deptree[childInSen].wordPos,childw));
+        if(strcmp(deptree[childInSen].wordPos,childw)){
+            GetDepTreeFromFilePointer(fin);
+            return 0;
+        }
 
         if(deptree[parentInSen].wordPos[0]==0)
             strcpy(deptree[parentInSen].wordPos,parentw);
-        assert(!strcmp(deptree[parentInSen].wordPos,parentw));
+        if(strcmp(deptree[parentInSen].wordPos,parentw)){
+            GetDepTreeFromFilePointer(fin);
+            return 0;
+        }
     }
 
     fgets(temp, MAX_STRING, fin);
-    assert(!strcmp(temp, "\n"));
+    if(strcmp(temp, "\n")) {
+        GetDepTreeFromFilePointer(fin);
+        return 0;
+    }
+    return 0;
 }

@@ -177,7 +177,7 @@ void DepSkgNeg::TrainModelThread(int id){
     fseek(fi, file_size / (long long)num_threads * id, SEEK_SET);
     FindTreeStart(fi);
 
-    DepTree depTree(vocab);
+    DepTree depTree;
 
     unsigned int total_words=vocab.GetTotalWords();
     unsigned int total_trees=vocab.GetTrainTrees();

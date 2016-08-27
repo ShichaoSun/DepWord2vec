@@ -1,6 +1,6 @@
 {
-  "train_file":"/home/bruce/wiki/wiki_dependency_tree",
-  "read_vocab":"vocab",
+  "train_file":"tree",
+  "save_vocab":"vocab",
   "output_file":"dep2vec.bin",
   "binary":1,
   "layer1_size":200,

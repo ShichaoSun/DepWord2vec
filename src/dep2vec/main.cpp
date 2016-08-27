@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
 
     Vocab vocab;
     char train_file[MAX_STRING];
-    char default_config[MAX_STRING]="/home/bruce/ClionProjects/DepWord2vec/default_dep2vec_config.json";
+    char default_config[MAX_STRING]="default_dep2vec_config.json";
     std::ifstream in(default_config, std::ios::in);
     std::istreambuf_iterator<char> beg(in), end;
     std::string jsondata(beg, end);

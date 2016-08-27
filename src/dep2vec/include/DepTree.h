@@ -26,11 +26,10 @@ struct TreeNode{
 class DepTree{
 public:
     int senlen;
-    const Vocab &vocab;
     TreeNode deptree[MAX_SENTENCE_LENGTH+1];
 
-    DepTree(const Vocab &v);
-    void GetDepTreeFromFilePointer(FILE *fin);
+    DepTree();
+    int GetDepTreeFromFilePointer(FILE *fin);
 private:
     void ClearDepTree();// clear the tree
 };
