@@ -179,7 +179,7 @@ void DepSkgNeg::TrainModelThread(int id){
 
     DepTree depTree;
 
-    unsigned int total_words=vocab.GetTotalWords();
+    long long total_words=vocab.GetTotalWords();
     unsigned int total_trees=vocab.GetTrainTrees();
 
     while (1) {
