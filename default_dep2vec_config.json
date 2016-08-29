@@ -5,9 +5,9 @@
   "binary":1,
   "layer1_size":200,
   "sample":0,
-  "negative":15,
-  "threads":10,
+  "negative":10,
+  "threads":6,
   "debug_mode":2,
-  "iter":25,
+  "iter":5,
   "bigdata":1
 } 

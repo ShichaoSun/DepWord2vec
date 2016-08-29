@@ -166,6 +166,7 @@ void DepSkgNeg::TrainModelThread(int id){
     int local_iter=iter;
     unsigned long long next_random = (unsigned long long)id;
     clock_t now;
+    unsigned int vocab_size = vocab.GetVocabWordSize();
 
     real *neu1e = (real *)calloc(layer1_size, sizeof(real));
     FILE *fi = fopen(train_file, "rb");
@@ -182,7 +183,7 @@ void DepSkgNeg::TrainModelThread(int id){
     long long total_words=vocab.GetTotalWords();
     long long total_trees=vocab.GetTrainTrees();
 
-    while (1) {
+    while (true) {
         if (word_count - last_word_count >= 10000) {  //update the learning rate for every 100 trees
             tree_count_total += tree_count - last_tree_count;  //global count of trees
             word_count_total  += word_count - last_word_count;
@@ -225,136 +226,159 @@ void DepSkgNeg::TrainModelThread(int id){
         //step2:train a tree
         for (unsigned int sentence_position = 1; sentence_position <= sentence_length; sentence_position++) {
 
-            const TreeNode *cur=&depTree.deptree[sentence_position];
+            const TreeNode *cur = &depTree.deptree[sentence_position];
 
             char wordPos[MAX_STRING];
-            strcpy(wordPos,cur->wordPos);
+            strcpy(wordPos, cur->wordPos);
 
             //to parent negative sampling
-            int parent=cur->parent;
-            int parentInVocab=-1;
-            if(parent!=0) {
+            int parent = cur->parent;
+            int parentInVocab = -1;
+            if (parent != 0) {
                 const TreeNode *curParent = &depTree.deptree[parent];
 
-                char parentWordPos[MAX_STRING];
-                strcpy(parentWordPos,curParent->wordPos);
-                for(int i=0;i<strlen(parentWordPos);i++)
-                    if(parentWordPos[i]=='/'){
-                        parentWordPos[i]=0;
+                char parentWord[MAX_STRING];
+                strcpy(parentWord, curParent->wordPos);
+                for (int i = 0; i < strlen(parentWord); i++)
+                    if (parentWord[i] == '/') {
+                        parentWord[i] = 0;
                         break;
                     }
                 //parent is target word
-                parentInVocab=vocab.SearchVocabWord(parentWordPos);
+                parentInVocab = vocab.SearchVocabWord(parentWord);
 
-                if(parentInVocab!=-1) {
-                    for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] = 0;
+                if (parentInVocab != -1) {
+                    bool update = true;
                     char relWordPos[MAX_STRING];
                     strcpy(relWordPos, cur->toRel);
 
                     long lrel = strlen(relWordPos);
                     relWordPos[lrel] = '/';
-                    relWordPos[lrel] = 0;
+                    relWordPos[lrel + 1] = 0;
                     strcat(relWordPos, wordPos);
 
                     int p_relWordPos = vocab.SearchVocabRelWordPos(relWordPos);
                     if (p_relWordPos != -1) {
-                        int l1=p_relWordPos;
-                        int label,target;
+                        int l1 = p_relWordPos * layer1_size;
+                        int label, target;
+                        for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] = 0;
                         for (int d = 0; d < negative + 1; d++) {
                             if (d == 0) {
-                                target=parentInVocab;
+                                target = parentInVocab;
                                 label = 1;
                             }
-                             else {
+                            else {
                                 next_random = next_random * (unsigned long long) 25214903917 + 11;
                                 target = table[(next_random >> 16) % table_size];
-                                unsigned int vocab_size = vocab.GetVocabWordSize();
-                                if (target == 0) target =(int) next_random % (vocab_size - 1) + 1;
-                                if (target == parentInVocab) continue;
+                                if (target == 0) target = (int) next_random % (vocab_size - 1) + 1;
+                                while (target == parentInVocab) {
+                                    next_random = next_random * (unsigned long long) 25214903917 + 11;
+                                    target = table[(next_random >> 16) % table_size];
+                                    if (target == 0) target = (int) next_random % (vocab_size - 1) + 1;
+                                }
                                 label = 0;
                             }
                             int l2 = target * layer1_size;
-                            real f = 0,g=0;
-                            for (unsigned int c = 0; c < layer1_size; c++) f += syn1RelWordPos[c + l1] * syn0Word[c + l2];
+                            real f = 0, g = 0;
+                            for (unsigned int c = 0; c < layer1_size; c++)
+                                f += syn1RelWordPos[c + l1] * syn0Word[c + l2];
                             if (f > MAX_EXP) g = (label - 1) * alpha;
                             else if (f < -MAX_EXP) g = (label - 0) * alpha;
                             else g = (label - expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
                             for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] += g * syn0Word[c + l2];
-                            for (unsigned int c = 0; c < layer1_size; c++) syn0Word[c + l2] += g * syn1RelWordPos[c + l1];
+                            if (update) {
+                                for (unsigned int c = 0; c < layer1_size; c++)
+                                    syn0Word[c + l2] += g * syn1RelWordPos[c + l1];
+                                update = false;
+                            }
                         }
                         // Learn weights input -> hidden
                         for (unsigned int c = 0; c < layer1_size; c++) syn1RelWordPos[c + l1] += neu1e[c];
+                    }
 
-                    }else{
-                        int p_wordPos=vocab.SearchVocabWordPos(wordPos);
-                        if(p_wordPos!=-1){
-                            int l1=p_wordPos;
-                            int label,target;
-                            for (int d = 0; d < negative + 1; d++) {
-                                if (d == 0) {
-                                    target=parentInVocab;
-                                    label = 1;
-                                }
-                                else {
+                    int p_wordPos = vocab.SearchVocabWordPos(wordPos);
+                    if (p_wordPos != -1) {
+                        int l1 = p_wordPos * layer1_size;
+                        int label, target;
+                        for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] = 0;
+                        for (int d = 0; d < negative + 1; d++) {
+                            if (d == 0) {
+                                target = parentInVocab;
+                                label = 1;
+                            }
+                            else {
+                                next_random = next_random * (unsigned long long) 25214903917 + 11;
+                                target = table[(next_random >> 16) % table_size];
+                                if (target == 0) target = (int) next_random % (vocab_size - 1) + 1;
+                                while (target == parentInVocab) {
                                     next_random = next_random * (unsigned long long) 25214903917 + 11;
                                     target = table[(next_random >> 16) % table_size];
-                                    unsigned int vocab_size = vocab.GetVocabWordSize();
-                                    if (target == 0) target =(int) next_random % (vocab_size - 1) + 1;
-                                    if (target == parentInVocab) continue;
-                                    label = 0;
+                                    if (target == 0) target = (int) next_random % (vocab_size - 1) + 1;
                                 }
-                                int l2 = target * layer1_size;
-                                real f = 0,g=0;
-                                for (unsigned int c = 0; c < layer1_size; c++) f += syn1WordPos[c + l1] * syn0Word[c + l2];
-                                if (f > MAX_EXP) g = (label - 1) * alpha;
-                                else if (f < -MAX_EXP) g = (label - 0) * alpha;
-                                else g = (label - expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
-                                for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] += g * syn0Word[c + l2];
-                                for (unsigned int c = 0; c < layer1_size; c++) syn0Word[c + l2] += g * syn1WordPos[c + l1];
+                                label = 0;
                             }
-                            // Learn weights input -> hidden
-                            for (unsigned int c = 0; c < layer1_size; c++) syn1WordPos[c + l1] += neu1e[c];
-                        }else{
-                            int k=0;
-                            while (true){
-                                if(wordPos[k]=='/'){
-                                    wordPos[k]=0;
-                                    break;
-                                }else
-                                    k++;
-                            }
-
-                            int p_word=vocab.SearchVocabWord(wordPos);
-                            wordPos[k]='/';//keep wordPos don 't change
-                            if(p_word!=-1){
-                                int l1=p_word;
-                                int label,target;
-                                for (int d = 0; d < negative + 1; d++) {
-                                    if (d == 0) {
-                                        target=parentInVocab;
-                                        label = 1;
-                                    }
-                                    else {
-                                        next_random = next_random * (unsigned long long) 25214903917 + 11;
-                                        target = table[(next_random >> 16) % table_size];
-                                        unsigned int vocab_size = vocab.GetVocabWordSize();
-                                        if (target == 0) target =(int) next_random % (vocab_size - 1) + 1;
-                                        if (target == parentInVocab) continue;
-                                        label = 0;
-                                    }
-                                    int l2 = target * layer1_size;
-                                    real f = 0,g=0;
-                                    for (unsigned int c = 0; c < layer1_size; c++) f += syn1Word[c + l1] * syn0Word[c + l2];
-                                    if (f > MAX_EXP) g = (label - 1) * alpha;
-                                    else if (f < -MAX_EXP) g = (label - 0) * alpha;
-                                    else g = (label - expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
-                                    for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] += g * syn0Word[c + l2];
-                                    for (unsigned int c = 0; c < layer1_size; c++) syn0Word[c + l2] += g * syn1Word[c + l1];
-                                }
-                                // Learn weights input -> hidden
-                                for (unsigned int c = 0; c < layer1_size; c++) syn1Word[c + l1] += neu1e[c];
+                            int l2 = target * layer1_size;
+                            real f = 0, g = 0;
+                            for (unsigned int c = 0; c < layer1_size; c++) f += syn1WordPos[c + l1] * syn0Word[c + l2];
+                            if (f > MAX_EXP) g = (label - 1) * alpha;
+                            else if (f < -MAX_EXP) g = (label - 0) * alpha;
+                            else g = (label - expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
+                            for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] += g * syn0Word[c + l2];
+                            if (update) {
+                                for (unsigned int c = 0; c < layer1_size; c++)
+                                    syn0Word[c + l2] += g * syn1WordPos[c + l1];
+                                update = false;
                             }
                         }
+                        // Learn weights input -> hidden
+                        for (unsigned int c = 0; c < layer1_size; c++) syn1WordPos[c + l1] += neu1e[c];
+                    }
+
+                    int k = 0;
+                    while (true) {
+                        if (wordPos[k] == '/') {
+                            wordPos[k] = 0;
+                            break;
+                        } else
+                            k++;
+                    }
+
+                    int p_word = vocab.SearchVocabWord(wordPos);
+                    wordPos[k] = '/';//keep wordPos don 't change
+                    if (p_word != -1) {
+                        int l1 = p_word * layer1_size;
+                        int label, target;
+                        for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] = 0;
+                        for (int d = 0; d < negative + 1; d++) {
+                            if (d == 0) {
+                                target = parentInVocab;
+                                label = 1;
+                            }
+                            else {
+                                next_random = next_random * (unsigned long long) 25214903917 + 11;
+                                target = table[(next_random >> 16) % table_size];
+                                if (target == 0) target = (int) next_random % (vocab_size - 1) + 1;
+                                while (target == parentInVocab) {
+                                    next_random = next_random * (unsigned long long) 25214903917 + 11;
+                                    target = table[(next_random >> 16) % table_size];
+                                    if (target == 0) target = (int) next_random % (vocab_size - 1) + 1;
+                                }
+                                label = 0;
+                            }
+                            int l2 = target * layer1_size;
+                            real f = 0, g = 0;
+                            for (unsigned int c = 0; c < layer1_size; c++) f += syn1Word[c + l1] * syn0Word[c + l2];
+                            if (f > MAX_EXP) g = (label - 1) * alpha;
+                            else if (f < -MAX_EXP) g = (label - 0) * alpha;
+                            else g = (label - expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
+                            for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] += g * syn0Word[c + l2];
+                            if (update) {
+                                for (unsigned int c = 0; c < layer1_size; c++) syn0Word[c + l2] += g * syn1Word[c + l1];
+                                update = false;
+                            }
+                        }
+                        // Learn weights input -> hidden
+                        for (unsigned int c = 0; c < layer1_size; c++) syn1Word[c + l1] += neu1e[c];
                     }
                 }
             }
@@ -364,168 +388,179 @@ void DepSkgNeg::TrainModelThread(int id){
             char childWordPos[MAX_STRING];
             int childInVocab[MAX_SENTENCE_LENGTH];
             int childInSentence[MAX_SENTENCE_LENGTH];
-            long childCount=0;
-            for(int k=0;k<cur->child.size();k++){
-                childInSentence[childCount]=cur->child[k];
-                strcpy(childWordPos,depTree.deptree[childInSentence[childCount]].wordPos);
-                int h=0;
-                while(true){
-                    if(childWordPos[h]=='/'){
-                        childWordPos[h]=0;
-                        break;
-                    }else
-                        h++;
-                }
-                childInVocab[childCount]=vocab.SearchVocabWord(childWordPos);
-                if(childInVocab[childCount]!=-1)
-                    childCount++;
-            }
-
-            for(int j=0;j<childCount;j++) {//child is target word
-                for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] = 0;
-                char wordPosRel[MAX_STRING];
-                strcpy(wordPosRel, wordPos);
-
-                long l = strlen(wordPosRel);
-                wordPosRel[l] = '/';
-                wordPosRel[l] = 0;
-                strcat(wordPosRel, depTree.deptree[childInSentence[j]].toRel);
-
-                int c_wordPosRel = vocab.SearchVocabWordPosRel(wordPosRel);
-                if (c_wordPosRel != -1) {
-                    int l1 = c_wordPosRel;
-                    int label, target;
-                    for (int d = 0; d < negative + 1; d++) {
-                        if (d == 0) {
-                            target = childInVocab[j];
-                            label = 1;
-                        }
-                        else {
-                            next_random = next_random * (unsigned long long) 25214903917 + 11;
-                            target = table[(next_random >> 16) % table_size];
-                            unsigned int vocab_size = vocab.GetVocabWordSize();
-                            if (target == 0) target = (int) next_random % (vocab_size - 1) + 1;
-                            if(target ==parentInVocab) continue;
-                            int flagC=false;
-                            for(int kk=0;kk<childCount;kk++){
-                                if(target==childInVocab[kk]) {
-                                    flagC = true;
-                                    break;
-                                }
-                            }
-                            if (flagC) continue;
-                            label = 0;
-                        }
-                        int l2 = target * layer1_size;
-                        real f = 0, g = 0;
-                        for (unsigned int c = 0; c < layer1_size; c++)
-                            f += syn1WordPosRel[c + l1] * syn0Word[c + l2];
-                        if (f > MAX_EXP) g = (label - 1) * alpha;
-                        else if (f < -MAX_EXP) g = (label - 0) * alpha;
-                        else g = (label - expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
-                        for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] += g * syn0Word[c + l2];
-                        for (unsigned int c = 0; c < layer1_size; c++)
-                            syn0Word[c + l2] += g * syn1WordPosRel[c + l1];
+            long childCount = 0;
+            if (!cur->child.empty())
+                for (int k = 0; k < cur->child.size(); k++) {
+                    childInSentence[childCount] = cur->child[k];
+                    strcpy(childWordPos, depTree.deptree[childInSentence[childCount]].wordPos);
+                    int h = 0;
+                    while (true) {
+                        if (childWordPos[h] == '/') {
+                            childWordPos[h] = 0;
+                            break;
+                        } else
+                            h++;
                     }
-                    // Learn weights input -> hidden
-                    for (unsigned int c = 0; c < layer1_size; c++) syn1WordPosRel[c + l1] += neu1e[c];
+                    childInVocab[childCount] = vocab.SearchVocabWord(childWordPos);
+                    if (childInVocab[childCount] != -1)
+                        childCount++;
+                }
 
-                } else {
-                    int c_wordPos = vocab.SearchVocabWordPos(wordPos);
-                    if (c_wordPos != -1) {
-                        int l1 = c_wordPos;
+            if (childCount != 0)
+                for (int j = 0; j < childCount; j++) {//child is target word
+                    bool update = true;
+                    char wordPosRel[MAX_STRING];
+                    strcpy(wordPosRel, wordPos);
+
+                    long l = strlen(wordPosRel);
+                    wordPosRel[l] = '/';
+                    wordPosRel[l + 1] = 0;
+                    strcat(wordPosRel, depTree.deptree[childInSentence[j]].toRel);
+
+                    int c_wordPosRel = vocab.SearchVocabWordPosRel(wordPosRel);
+                    if (c_wordPosRel != -1) {
+                        int l1 = c_wordPosRel * layer1_size;
                         int label, target;
+                        for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] = 0;
                         for (int d = 0; d < negative + 1; d++) {
                             if (d == 0) {
                                 target = childInVocab[j];
                                 label = 1;
                             }
                             else {
-                                next_random = next_random * (unsigned long long) 25214903917 + 11;
-                                target = table[(next_random >> 16) % table_size];
-                                unsigned int vocab_size = vocab.GetVocabWordSize();
-                                if (target == 0) target = (int) next_random % (vocab_size - 1) + 1;
-                                if (target == parentInVocab) continue;
-                                int flagC=false;
-                                for(int kk=0;kk<childCount;kk++){
-                                    if(target==childInVocab[kk]) {
-                                        flagC = true;
-                                        break;
-                                    }
-                                }
-                                if (flagC) continue;
-                                label = 0;
-                            }
-                            int l2 = target * layer1_size;
-                            real f = 0, g = 0;
-                            for (unsigned int c = 0; c < layer1_size; c++)
-                                f += syn1WordPos[c + l1] * syn0Word[c + l2];
-                            if (f > MAX_EXP) g = (label - 1) * alpha;
-                            else if (f < -MAX_EXP) g = (label - 0) * alpha;
-                            else
-                                g = (label - expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) *
-                                    alpha;
-                            for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] += g * syn0Word[c + l2];
-                            for (unsigned int c = 0; c < layer1_size; c++)
-                                syn0Word[c + l2] += g * syn1WordPos[c + l1];
-                        }
-                        // Learn weights input -> hidden
-                        for (unsigned int c = 0; c < layer1_size; c++) syn1WordPos[c + l1] += neu1e[c];
-                    } else {
-                        int k = 0;
-                        while (true) {
-                            if (wordPos[k] == '/') {
-                                wordPos[k] = 0;
-                                break;
-                            } else
-                                k++;
-                        }
-
-                        int c_word = vocab.SearchVocabWord(wordPos);
-                        wordPos[k]='/';//keep wordPos don 't change
-                        if (c_word != -1) {
-                            int l1 = c_word;
-                            int label, target;
-                            for (int d = 0; d < negative + 1; d++) {
-                                if (d == 0) {
-                                    target = childInVocab[j];
-                                    label = 1;
-                                }
-                                else {
+                                while (true) {
                                     next_random = next_random * (unsigned long long) 25214903917 + 11;
                                     target = table[(next_random >> 16) % table_size];
-                                    unsigned int vocab_size = vocab.GetVocabWordSize();
                                     if (target == 0) target = (int) next_random % (vocab_size - 1) + 1;
                                     if (target == parentInVocab) continue;
-                                    int flagC=false;
-                                    for(int kk=0;kk<childCount;kk++){
-                                        if(target==childInVocab[kk]) {
+                                    int flagC = false;
+                                    for (int kk = 0; kk < childCount; kk++) {
+                                        if (target == childInVocab[kk]) {
                                             flagC = true;
                                             break;
                                         }
                                     }
                                     if (flagC) continue;
-                                    label = 0;
+                                    break;
                                 }
-                                int l2 = target * layer1_size;
-                                real f = 0, g = 0;
-                                for (unsigned int c = 0; c < layer1_size; c++)
-                                    f += syn1Word[c + l1] * syn0Word[c + l2];
-                                if (f > MAX_EXP) g = (label - 1) * alpha;
-                                else if (f < -MAX_EXP) g = (label - 0) * alpha;
-                                else
-                                    g = (label - expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) *
-                                        alpha;
-                                for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] += g * syn0Word[c + l2];
-                                for (unsigned int c = 0; c < layer1_size; c++)
-                                    syn0Word[c + l2] += g * syn1Word[c + l1];
+                                label = 0;
                             }
-                            // Learn weights input -> hidden
-                            for (unsigned int c = 0; c < layer1_size; c++) syn1Word[c + l1] += neu1e[c];
+                            int l2 = target * layer1_size;
+                            real f = 0, g = 0;
+                            for (unsigned int c = 0; c < layer1_size; c++)
+                                f += syn1WordPosRel[c + l1] * syn0Word[c + l2];
+                            if (f > MAX_EXP) g = (label - 1) * alpha;
+                            else if (f < -MAX_EXP) g = (label - 0) * alpha;
+                            else g = (label - expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
+                            for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] += g * syn0Word[c + l2];
+                            if (update) {
+                                for (unsigned int c = 0; c < layer1_size; c++)
+                                    syn0Word[c + l2] += g * syn1WordPosRel[c + l1];
+                                update = false;
+                            }
                         }
+                        // Learn weights input -> hidden
+                        for (unsigned int c = 0; c < layer1_size; c++) syn1WordPosRel[c + l1] += neu1e[c];
+
+                    }
+                    int c_wordPos = vocab.SearchVocabWordPos(wordPos);
+                    if (c_wordPos != -1) {
+                        int l1 = c_wordPos * layer1_size;
+                        int label, target;
+                        for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] = 0;
+                        for (int d = 0; d < negative + 1; d++) {
+                            if (d == 0) {
+                                target = childInVocab[j];
+                                label = 1;
+                            }
+                            else {
+                                while (true) {
+                                    next_random = next_random * (unsigned long long) 25214903917 + 11;
+                                    target = table[(next_random >> 16) % table_size];
+                                    if (target == 0) target = (int) next_random % (vocab_size - 1) + 1;
+                                    if (target == parentInVocab) continue;
+                                    int flagC = false;
+                                    for (int kk = 0; kk < childCount; kk++) {
+                                        if (target == childInVocab[kk]) {
+                                            flagC = true;
+                                            break;
+                                        }
+                                    }
+                                    if (flagC) continue;
+                                    break;
+                                }
+                                label = 0;
+                            }
+                            int l2 = target * layer1_size;
+                            real f = 0, g = 0;
+                            for (unsigned int c = 0; c < layer1_size; c++) f += syn1WordPos[c + l1] * syn0Word[c + l2];
+                            if (f > MAX_EXP) g = (label - 1) * alpha;
+                            else if (f < -MAX_EXP) g = (label - 0) * alpha;
+                            else g = (label - expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
+                            for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] += g * syn0Word[c + l2];
+                            if (update) {
+                                for (unsigned int c = 0; c < layer1_size; c++)
+                                    syn0Word[c + l2] += g * syn1WordPos[c + l1];
+                                update = false;
+                            }
+                        }
+                        // Learn weights input -> hidden
+                        for (unsigned int c = 0; c < layer1_size; c++) syn1WordPos[c + l1] += neu1e[c];
+                    }
+                    int k = 0;
+                    while (true) {
+                        if (wordPos[k] == '/') {
+                            wordPos[k] = 0;
+                            break;
+                        } else
+                            k++;
+                    }
+
+                    int c_word = vocab.SearchVocabWord(wordPos);
+                    wordPos[k] = '/';//keep wordPos don 't change
+                    if (c_word != -1) {
+                        int l1 = c_word * layer1_size;
+                        int label, target;
+                        for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] = 0;
+                        for (int d = 0; d < negative + 1; d++) {
+                            if (d == 0) {
+                                target = childInVocab[j];
+                                label = 1;
+                            }
+                            else {
+                                while (true) {
+                                    next_random = next_random * (unsigned long long) 25214903917 + 11;
+                                    target = table[(next_random >> 16) % table_size];
+                                    if (target == 0) target = (int) next_random % (vocab_size - 1) + 1;
+                                    if (target == parentInVocab) continue;
+                                    int flagC = false;
+                                    for (int kk = 0; kk < childCount; kk++) {
+                                        if (target == childInVocab[kk]) {
+                                            flagC = true;
+                                            break;
+                                        }
+                                    }
+                                    if (flagC) continue;
+                                    break;
+                                }
+                                label = 0;
+                            }
+                            int l2 = target * layer1_size;
+                            real f = 0, g = 0;
+                            for (unsigned int c = 0; c < layer1_size; c++) f += syn1Word[c + l1] * syn0Word[c + l2];
+                            if (f > MAX_EXP) g = (label - 1) * alpha;
+                            else if (f < -MAX_EXP) g = (label - 0) * alpha;
+                            else g = (label - expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
+                            for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] += g * syn0Word[c + l2];
+                            if (update) {
+                                for (unsigned int c = 0; c < layer1_size; c++) syn0Word[c + l2] += g * syn1Word[c + l1];
+                                update = false;
+                            }
+                        }
+                        // Learn weights input -> hidden
+                        for (unsigned int c = 0; c < layer1_size; c++) syn1Word[c + l1] += neu1e[c];
                     }
                 }
-            }
         }
         tree_count++;
         word_count+=sentence_length;
@@ -549,7 +584,6 @@ void DepSkgNeg::TrainModelThread(int id){
             FindTreeStart(fi);
             continue;
         }
-
     }
     fclose(fi);
     free(neu1e);
