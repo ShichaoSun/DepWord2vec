@@ -141,7 +141,7 @@ int Vocab::AddWordPosToVocab(char *wordPos){
         vocabWordPos = (vocab_cell*)realloc(vocabWordPos, vocabWordPos_max_size * sizeof(vocab_cell));
     }
     hash = GetWordHash(wordPos);
-    while (vocabWordPos_hash[hash] != -1) hash = (hash + 1) % vocabWordPos_size;
+    while (vocabWordPos_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
     vocabWordPos_hash[hash] = vocabWordPos_size - 1;
     return vocabWordPos_size - 1;
 }
@@ -161,7 +161,7 @@ int Vocab::AddWordPosRelToVocab(char *wordPosRel){
         vocabWordPosRel = (vocab_cell*)realloc(vocabWordPosRel, vocabWordPosRel_max_size * sizeof(vocab_cell));
     }
     hash = GetWordHash(wordPosRel);
-    while (vocabWordPosRel_hash[hash] != -1) hash = (hash + 1) % vocabWordPosRel_size;
+    while (vocabWordPosRel_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
     vocabWordPosRel_hash[hash] = vocabWordPosRel_size - 1;
     return vocabWordPosRel_size - 1;
 }
@@ -181,7 +181,7 @@ int Vocab::AddRelWordPosToVocab(char *relWordPos){
         vocabRelWordPos = (vocab_cell*)realloc(vocabRelWordPos, vocabRelWordPos_max_size * sizeof(vocab_cell));
     }
     hash = GetWordHash(relWordPos);
-    while (vocabRelWordPos_hash[hash] != -1) hash = (hash + 1) % vocabRelWordPos_size;
+    while (vocabRelWordPos_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
     vocabRelWordPos_hash[hash] = vocabRelWordPos_size - 1;
     return vocabRelWordPos_size - 1;
 }
@@ -686,7 +686,7 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
 
 
 
-                for(int k=0;k < tl;k++){
+                for(int k=0;k < strlen(word2);k++){
                     if(word2[k]=='/'){
                         word2[k]=0;
                         break;
@@ -730,6 +730,10 @@ int Vocab::LearnVocabFromTrainFile(const char *train_file) {
     }
 
     fclose(fin);
+    printf("\nVocab of word size before sort: %u\n", vocabWord_size);
+    printf("Vocab of wordPos size before sort: %u\n", vocabWordPos_size);
+    printf("Vocab of wordPosRel size before sort: %u\n", vocabWordPosRel_size);
+    printf("Vocab of relWordPos size before sort: %u\n", vocabRelWordPos_size);
 
     SortVocabWord();
     SortVocabWordPos();
