@@ -162,7 +162,7 @@ void DepSkgNeg::FindTreeStart(FILE *f) {
 
 void DepSkgNeg::TrainModelThread(int id){
     int sentence_length = 0;
-    unsigned int word_count=0,last_word_count=0,tree_count=0,last_tree_count=0;
+    long long word_count=0,last_word_count=0,tree_count=0,last_tree_count=0;
     int local_iter=iter;
     unsigned long long next_random = (unsigned long long)id;
     clock_t now;
@@ -621,8 +621,8 @@ void DepSkgNeg::TrainModel() {
     for (int a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, BasicTrainModelThread,&param[a]);
     for (int a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
 
-    printf("\nTrees trained: %u\n", tree_count_total/iter);
-    printf("Words trained: %u\n", word_count_total/iter);
+    printf("\nTrees trained: %lld\n", tree_count_total/iter);
+    printf("Words trained: %lld\n", word_count_total/iter);
 
     free(pt);
 
