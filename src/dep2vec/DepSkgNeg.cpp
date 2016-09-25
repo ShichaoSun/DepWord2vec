@@ -38,7 +38,7 @@ DepSkgNeg::DepSkgNeg(const Vocab& v):table_size((int)1e8),vocab(v){//initialize 
     //InitNet
     long long a, b;
     unsigned long long next_random = 1;
-
+    //rand initialize the parameter
     unsigned int vocabWord_size=vocab.GetVocabWordSize();
     posix_memalign((void **)&syn0Word, 128,  vocabWord_size * layer1_size * sizeof(real));
     posix_memalign((void **)&syn1Word, 128,  vocabWord_size * layer1_size * sizeof(real));
@@ -149,7 +149,7 @@ void* DepSkgNeg::BasicTrainModelThread(void *param){// multithread basic
     pthread_exit(NULL);
 }
 
-void DepSkgNeg::FindTreeStart(FILE *f) {
+void DepSkgNeg::FindTreeStart(FILE *f) { //find the start of a tree
     char line[MAX_STRING];
     //find a empty lines as the start of a tree
     while(!feof(f)){
@@ -208,7 +208,7 @@ void DepSkgNeg::TrainModelThread(int id){
         depTree.GetDepTreeFromFilePointer(fi);
         sentence_length = depTree.senlen;
 
-        if(sentence_length==-1 && feof(fi)){
+        if(sentence_length==-1 && feof(fi)){// when the file is end
             tree_count_total += tree_count - last_tree_count;
             word_count_total += word_count - last_word_count;
             local_iter--;// next iteration
@@ -229,7 +229,7 @@ void DepSkgNeg::TrainModelThread(int id){
             const TreeNode *cur = &depTree.deptree[sentence_position];
 
             char wordPos[MAX_STRING];
-            strcpy(wordPos, cur->wordPos);
+            strcpy(wordPos, cur->wordPos);//the current is regarded as relationship
 
             //to parent negative sampling
             int parent = cur->parent;
@@ -258,7 +258,7 @@ void DepSkgNeg::TrainModelThread(int id){
                     strcat(relWordPos, wordPos);
 
                     int p_relWordPos = vocab.SearchVocabRelWordPos(relWordPos);
-                    if (p_relWordPos != -1) {
+                    if (p_relWordPos != -1) {//rel/word/pos in vocab
                         int l1 = p_relWordPos * layer1_size;
                         int label, target;
                         for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] = 0;
@@ -297,7 +297,7 @@ void DepSkgNeg::TrainModelThread(int id){
                     }
 
                     int p_wordPos = vocab.SearchVocabWordPos(wordPos);
-                    if (p_wordPos != -1) {
+                    if (p_wordPos != -1) {//word/pos is in vocab
                         int l1 = p_wordPos * layer1_size;
                         int label, target;
                         for (unsigned int c = 0; c < layer1_size; c++) neu1e[c] = 0;

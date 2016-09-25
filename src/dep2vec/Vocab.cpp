@@ -4,7 +4,7 @@
 
 #include "Vocab.h"
 
-Vocab::Vocab():vocab_hash_size(300000000){
+Vocab::Vocab():vocab_hash_size(300000000){//initialize the default parameter
     vocabWord_max_size=1000;
     vocabWordPos_max_size=1000;
     vocabWordPosRel_max_size=1000;
@@ -45,21 +45,21 @@ int Vocab::GetWordHash(const char *word) const{// Returns hash value of a word
     return hash;
 }
 
-int Vocab::GetWordPosHash(const char *wordPos) const {// Returns hash value of a word
+int Vocab::GetWordPosHash(const char *wordPos) const {// Returns hash value of a wordpos
     int a, hash = 0;
     for (a = 0; a < strlen(wordPos); a++) hash = hash * 257 + wordPos[a];
     hash = hash % vocab_hash_size;
     return hash;
 }
 
-int Vocab::GetWordPosRelHash(const char *wordPosRel) const {
+int Vocab::GetWordPosRelHash(const char *wordPosRel) const {// Returns hash value of a wordposrel
     int a, hash = 0;
     for (a = 0; a < strlen(wordPosRel); a++) hash = hash * 257 + wordPosRel[a];
     hash = hash % vocab_hash_size;
     return hash;
 }
 
-int Vocab::GetRelWordPosHash(const char *relWordPosRel) const {
+int Vocab::GetRelWordPosHash(const char *relWordPosRel) const {// Returns hash value of a relwordpos
     int a, hash = 0;
     for (a = 0; a < strlen(relWordPosRel); a++) hash = hash * 257 + relWordPosRel[a];
     hash = hash % vocab_hash_size;
