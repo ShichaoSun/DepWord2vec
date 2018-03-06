@@ -5,7 +5,7 @@ train word2vec in dependency tree
 cmake
 
 ## Running
-- Stage 1: Get training data(dependency tree of [wiki corpus]())
+- Stage 1: Get training data(dependency tree of [wiki corpus](https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles.xml.bz2))
 
 - Stage 2: Download vocab file ([vocab](https://drive.google.com/open?id=1j2_6t9Z9LQjeGX2nvUc5oAa9GNI0nL3D))
 
